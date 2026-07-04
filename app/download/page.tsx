@@ -72,7 +72,7 @@ export default function DownloadPage() {
               {/* Call-to-action button */}
               <div className="text-center pb-6 border-b border-slate-100">
                 <a
-                  href="/public/suyog-support.apk" // Pointing to local public directory APK
+                  href="/suyog-support.apk" // Pointing to local public directory APK
                   download="suyog-support.apk"
                   className="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white px-8 py-4 rounded-2xl font-bold text-base shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                 >
