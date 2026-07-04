@@ -11,7 +11,7 @@ export default function DownloadPage() {
       <header className="bg-white border-b border-slate-100 px-6 py-5 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img source="/logo.png" src="/logo.png" alt="Suyog Support Hub Logo" className="h-10 w-auto object-contain rounded-lg" />
+            <img src="/logo.png" alt="Suyog Support Hub Logo" className="h-10 w-auto object-contain rounded-lg" />
             <div>
               <h1 className="text-lg font-bold tracking-tight text-slate-900">Suyog Support Hub</h1>
               <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Official App Setup Portal</p>
