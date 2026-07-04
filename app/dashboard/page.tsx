@@ -20,7 +20,7 @@ interface Ticket {
   resolved_at: string | null;
   push_token: string | null;
   created_at: string;
-  feedback: { rating: number; comments: string } | null;
+  feedback: { rating: number | null; comments: string | null; resolution_notes?: string | null } | null;
 }
 
 interface Profile {
