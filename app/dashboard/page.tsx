@@ -613,7 +613,7 @@ export default function Dashboard() {
 
                               {t.status === 'resolved' && t.feedback && (
                                 <div className="text-right">
-                                  <p className="text-yellow-500 text-sm">{'⭐'.repeat(t.feedback.rating)}</p>
+                                  <p className="text-yellow-500 text-sm">{'⭐'.repeat(t.feedback.rating || 0)}</p>
                                   {t.feedback.comments && (
                                     <p className="text-xs text-gray-400 italic mt-0.5">"{t.feedback.comments}"</p>
                                   )}
@@ -896,7 +896,7 @@ export default function Dashboard() {
                                 )}
                                 {t.feedback.rating ? (
                                   <>
-                                    <p className="text-yellow-500 text-base">{'⭐'.repeat(t.feedback.rating)}</p>
+                                    <p className="text-yellow-500 text-base">{'⭐'.repeat(t.feedback.rating || 0)}</p>
                                     {t.feedback.comments && (
                                       <p className="text-xs text-gray-500 italic mt-1 max-w-xs text-right">
                                         "{t.feedback.comments}"
@@ -1176,7 +1176,11 @@ export default function Dashboard() {
                     </div>
                     {t.feedback && (
                       <div className="text-right">
-                        <p className="text-yellow-500 text-lg">{'⭐'.repeat(t.feedback.rating)}</p>
+                        {t.feedback.rating ? (
+                          <p className="text-yellow-500 text-lg">{'⭐'.repeat(t.feedback.rating)}</p>
+                        ) : (
+                          <p className="text-[10px] text-gray-400 italic">No client rating yet</p>
+                        )}
                         {t.feedback.comments && (
                           <p className="text-xs text-gray-400 italic mt-0.5 max-w-xs text-right">
                             "{t.feedback.comments}"
