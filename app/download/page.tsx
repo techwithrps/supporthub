@@ -50,16 +50,14 @@ export default function DownloadPage() {
           >
             <span>🤖</span> Android Device (APK)
           </button>
-          <button
-            onClick={() => setPlatform('ios')}
-            className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-sm font-bold transition-all ${
-              platform === 'ios'
-                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
+          <a
+            href="https://supporti-os.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 flex items-center justify-center gap-2.5 py-3 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-800 transition-all"
           >
             <span>🍏</span> Apple iOS User
-          </button>
+          </a>
         </div>
 
         {/* GUIDE CONTENT AREA */}
@@ -79,7 +77,7 @@ export default function DownloadPage() {
                 >
                   <span>📥</span> Download Android App (.APK)
                 </a>
-                <p className="mt-2.5 text-[11px] text-slate-400">File size: ~18MB • Version 1.0.0</p>
+                <p className="mt-2.5 text-[11px] text-slate-400">File size: 83.7MB • Version 1.0.0</p>
               </div>
 
               {/* Step-by-step instructions */}
