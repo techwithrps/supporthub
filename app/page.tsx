@@ -68,9 +68,8 @@ export default function LoginPage() {
             <div className="space-y-2.5 pt-2">
               {deviceOS === 'android' ? (
                 <a
-                  href="https://expo.dev/artifacts/eas/pSV8m6Cddm9WvLXHyiGNIZr0Yons3NTijgoqI-jbQtA.apk"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/suyog-support.apk"
+                  download="suyog-support.apk"
                   className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl text-sm shadow-md transition-all duration-150 active:scale-95 flex items-center justify-center gap-2"
                 >
                   📥 Download Android App (.APK)
