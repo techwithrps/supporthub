@@ -276,7 +276,7 @@ export default function IosAppPortal() {
     } catch (err: any) {
       console.error(err);
       alert('Error: ' + (err.message || 'Could not submit request.'));
-    } fill {
+    } finally {
       setLoading(false);
     }
   };
