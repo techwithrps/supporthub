@@ -329,7 +329,10 @@ export default function IosAppPortal() {
                   alt="Suyog logo"
                   className="w-[240px] h-[80px] object-contain mb-5"
                 />
-                <h1 className="text-3xl font-serif italic font-bold text-slate-800 tracking-tight">
+                <h1 
+                  className="text-3xl italic font-bold text-[#0F172A] tracking-tight"
+                  style={{ fontFamily: '"Times New Roman", Georgia, serif' }}
+                >
                   Suyog Support Hub
                 </h1>
               </div>
@@ -350,7 +353,10 @@ export default function IosAppPortal() {
                   alt="Suyog Support Hub Logo"
                   className="w-[200px] h-[70px] object-contain mb-4"
                 />
-                <h1 className="text-3xl font-serif italic font-bold text-slate-800">
+                <h1 
+                  className="text-3xl italic font-bold text-[#0F172A]"
+                  style={{ fontFamily: '"Times New Roman", Georgia, serif' }}
+                >
                   Suyog Support Hub
                 </h1>
               </div>
