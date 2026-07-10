@@ -120,9 +120,9 @@ export default function IosAppPortal() {
         };
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-        // Detect iOS device
+        // Detect iOS/macOS device (including Macintosh desktop for testing)
         const ua = window.navigator.userAgent.toLowerCase();
-        const isIos = ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod');
+        const isIos = ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod') || ua.includes('macintosh');
         if (isIos) {
           setIsIosMobile(true);
           setShowPwaPrompt(true);
