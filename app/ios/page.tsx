@@ -1,7 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState } from 'react';
 
 // Tally Serial validation: Must be exactly 9 digits, and the sum of digits must equal 9.
 const validateTallySerial = (serial: string): boolean => {
@@ -37,30 +37,54 @@ interface Ticket {
 }
 
 export default function IosAppPortal() {
-  const [currentScreen, setCurrentScreen] = useState<'hub' | 'raise' | 'history' | 'enquiry'>('hub');
-
+  const [currentScreen, setCurrentScreen] = useState<'splash' | 'hub' | 'raise_query_form' | 'new_enquiry_form' | 'query_list'>('splash');
+  
   // Issue Form states
-  const [customerName, setCustomerName] = useState('');
-  const [serialOrEmail, setSerialOrEmail] = useState('');
-  const [mobile, setMobile] = useState('');
-  const [issueType, setIssueType] = useState('Tally Prime');
-  const [description, setDescription] = useState('');
-
+  const [queryName, setQueryName] = useState('');
+  const [querySerialOrEmail, setQuerySerialOrEmail] = useState('');
+  const [queryMobile, setQueryMobile] = useState('');
+  const [queryType, setQueryType] = useState('Select your query type');
+  const [queryDesc, setQueryDesc] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  
   // Enquiry Form states
   const [enquiryName, setEnquiryName] = useState('');
   const [enquiryPhone, setEnquiryPhone] = useState('');
   const [enquiryDetails, setEnquiryDetails] = useState('');
-
+  
   // Validation / Loading states
-  const [validationError, setValidationError] = useState('');
-  const [enquiryValidationError, setEnquiryValidationError] = useState('');
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  
   // Local tickets history states
   const [savedTicketIds, setSavedTicketIds] = useState<string[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [fetchingHistory, setFetchingHistory] = useState(false);
+
+  // Rating Modal states
+  const [ratingTicket, setRatingTicket] = useState<Ticket | null>(null);
+  const [ratingVal, setRatingVal] = useState(5);
+  const [feedbackText, setFeedbackText] = useState('');
+
+  const issueTypes = [
+    'Select your query type',
+    'Tally Prime',
+    'Tally ERP 9',
+    'License Activation',
+    'Data Recovery',
+    'Others',
+  ];
+
+  // Splash Screen Timeout
+  useEffect(() => {
+    if (currentScreen === 'splash') {
+      const timer = setTimeout(() => {
+        setCurrentScreen('hub');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentScreen]);
 
   // Load local ticket IDs on mount
   useEffect(() => {
@@ -91,9 +115,9 @@ export default function IosAppPortal() {
         .from('tickets')
         .select('*')
         .in('id', savedTicketIds);
-
+      
       if (error) throw error;
-
+      
       if (data) {
         const sorted = [...data].sort(
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -107,70 +131,76 @@ export default function IosAppPortal() {
     }
   };
 
-  // Poll for updates
+  // Poll for updates when on relevant screens
   useEffect(() => {
-    fetchTicketHistory();
-    const interval = setInterval(fetchTicketHistory, 10000); // 10s poll
-    return () => clearInterval(interval);
+    if (currentScreen === 'query_list' || currentScreen === 'hub') {
+      fetchTicketHistory();
+      const interval = setInterval(fetchTicketHistory, 10000); // 10s poll
+      return () => clearInterval(interval);
+    }
   }, [savedTicketIds, currentScreen]);
 
   // Input Validation on Blur for tickets
-  const handleBlurValidation = () => {
-    const input = serialOrEmail.trim();
+  const handleSerialOrEmailBlur = () => {
+    const input = querySerialOrEmail.trim();
     if (!input) {
-      setValidationError('');
+      setFormErrors((prev) => ({ ...prev, querySerialOrEmail: '' }));
       return;
     }
 
     if (input.includes('@')) {
       if (!validateEmail(input)) {
-        setValidationError('Invalid Email ID format');
+        setFormErrors((prev) => ({ ...prev, querySerialOrEmail: 'Invalid Email ID format' }));
       } else {
-        setValidationError('');
+        setFormErrors((prev) => ({ ...prev, querySerialOrEmail: '' }));
       }
     } else {
       if (!validateTallySerial(input)) {
-        setValidationError('Invalid Tally Serial No. (Must be 9 digits & sum must equal 9)');
+        setFormErrors((prev) => ({ ...prev, querySerialOrEmail: 'Invalid Tally Serial No. or Email ID' }));
       } else {
-        setValidationError('');
+        setFormErrors((prev) => ({ ...prev, querySerialOrEmail: '' }));
       }
     }
   };
 
-  // Submit Ticket
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setValidationError('');
-    setSuccessMessage('');
+  // Submit Ticket (Raise Issue)
+  const handleRaiseQuerySubmit = async () => {
+    const errors: Record<string, string> = {};
+    if (!queryName.trim()) errors.queryName = 'Name is required';
+    if (!queryMobile.trim() || queryMobile.length < 10)
+      errors.queryMobile = 'Enter a valid 10-digit phone number';
+    if (!queryDesc.trim()) errors.queryDesc = 'Please describe your issue';
+    if (queryType === 'Select your query type') errors.queryType = 'Please select an issue type';
 
-    if (!customerName || !serialOrEmail || !mobile || !description) {
-      setValidationError('All fields are required');
-      return;
-    }
-
-    const input = serialOrEmail.trim();
-    const isEmail = input.includes('@');
-    if (isEmail) {
+    const input = querySerialOrEmail.trim();
+    if (!input) {
+      errors.querySerialOrEmail = 'Tally Serial or Email is required';
+    } else if (input.includes('@')) {
       if (!validateEmail(input)) {
-        setValidationError('Invalid Tally Serial No. or Email ID');
-        return;
+        errors.querySerialOrEmail = 'Invalid Tally Serial No. or Email ID';
       }
     } else {
       if (!validateTallySerial(input)) {
-        setValidationError('Invalid Tally Serial No. or Email ID');
-        return;
+        errors.querySerialOrEmail = 'Invalid Tally Serial No. or Email ID';
       }
     }
 
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setFormErrors({});
     setLoading(true);
     try {
+      const isEmail = input.includes('@');
       const insertData = {
-        customer_name: customerName,
+        customer_name: queryName,
         tally_serial: isEmail ? 'N/A' : input,
         email: isEmail ? input : 'N/A',
-        mobile: mobile,
-        issue_type: issueType,
-        description: description,
+        mobile: queryMobile,
+        issue_type: queryType,
+        description: queryDesc,
         status: 'pending',
       };
 
@@ -187,42 +217,41 @@ export default function IosAppPortal() {
         localStorage.setItem('suyog_ticket_ids', JSON.stringify(updatedIds));
         setSavedTicketIds(updatedIds);
 
-        setCustomerName('');
-        setSerialOrEmail('');
-        setMobile('');
-        setValidationError('');
-        setDescription('');
-        setSuccessMessage('Issue raised successfully!');
-
+        setQueryName('');
+        setQuerySerialOrEmail('');
+        setQueryMobile('');
+        setQueryType('Select your query type');
+        setQueryDesc('');
+        setSubmitSuccess(true);
+        
         setTimeout(() => {
-          setSuccessMessage('');
+          setSubmitSuccess(false);
           setCurrentScreen('hub');
-        }, 2000);
+        }, 3000);
       }
     } catch (err: any) {
       console.error(err);
-      setValidationError(err.message || 'Something went wrong. Please try again.');
+      alert('Error: ' + (err.message || 'Could not submit request.'));
     } finally {
       setLoading(false);
     }
   };
 
-  // Submit Enquiry (same logic as Android app)
+  // Submit Enquiry
   const handleEnquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEnquiryValidationError('');
-    setSuccessMessage('');
+    const errors: Record<string, string> = {};
+    if (!enquiryName.trim()) errors.enquiryName = 'Name is required';
+    if (!enquiryPhone.trim() || enquiryPhone.length < 10)
+      errors.enquiryPhone = 'Enter a valid 10-digit phone number';
+    if (!enquiryDetails.trim()) errors.enquiryDetails = 'Please share more details';
 
-    if (!enquiryName.trim() || !enquiryPhone.trim() || !enquiryDetails.trim()) {
-      setEnquiryValidationError('All fields are required');
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
 
-    if (enquiryPhone.trim().length < 10) {
-      setEnquiryValidationError('Enter a valid 10-digit phone number');
-      return;
-    }
-
+    setFormErrors({});
     setLoading(true);
     try {
       const { error } = await supabase
@@ -238,16 +267,45 @@ export default function IosAppPortal() {
       setEnquiryName('');
       setEnquiryPhone('');
       setEnquiryDetails('');
-      setEnquiryValidationError('');
-      setSuccessMessage('Enquiry logged successfully!');
+      setSubmitSuccess(true);
 
       setTimeout(() => {
-        setSuccessMessage('');
+        setSubmitSuccess(false);
         setCurrentScreen('hub');
-      }, 2000);
+      }, 3000);
     } catch (err: any) {
       console.error(err);
-      setEnquiryValidationError(err.message || 'Could not submit enquiry. Please try again.');
+      alert('Error: ' + (err.message || 'Could not submit enquiry.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Submit Feedback Rating
+  const handleFeedbackSubmit = async () => {
+    if (!ratingTicket) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .update({
+          feedback: {
+            rating: ratingVal,
+            comments: feedbackText.trim() || null,
+            resolution_notes: ratingTicket.feedback?.resolution_notes || null,
+          },
+        })
+        .eq('id', ratingTicket.id);
+
+      if (error) throw error;
+
+      setRatingTicket(null);
+      setFeedbackText('');
+      setRatingVal(5);
+      fetchTicketHistory();
+    } catch (err) {
+      console.error('Error submitting feedback:', err);
+      alert('Could not save rating');
     } finally {
       setLoading(false);
     }
@@ -255,351 +313,435 @@ export default function IosAppPortal() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-0 sm:p-4 select-none" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* PWA iOS Mobile Container Simulator on Desktop */}
-      <div className="w-full max-w-md bg-white min-h-screen sm:min-h-[812px] sm:rounded-[36px] sm:shadow-2xl overflow-hidden flex flex-col justify-between border-0 sm:border-8 border-slate-900 relative">
-
-        {/* APP HEADER */}
-        <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-          <div className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="Suyog logo" className="h-8 w-auto object-contain" />
-          </div>
-          {currentScreen !== 'hub' && (
-            <button
-              onClick={() => setCurrentScreen('hub')}
-              className="text-xs font-bold text-slate-500 hover:text-emerald-500 flex items-center gap-1 transition"
-            >
-              ← Back
-            </button>
+      
+      {/* Standalone Simulator Frame */}
+      <div className="w-full max-w-md bg-white min-h-screen sm:min-h-[812px] sm:rounded-[36px] sm:shadow-2xl overflow-hidden flex flex-col border-0 sm:border-8 border-slate-900 relative">
+        
+        {/* APP BODY SCROLL AREA */}
+        <div className="flex-grow flex flex-col justify-between overflow-y-auto">
+          
+          {/* SCREEN 1: SPLASH SCREEN */}
+          {currentScreen === 'splash' && (
+            <div className="flex-grow bg-white flex flex-col items-center justify-center min-h-[600px] relative">
+              <div className="flex flex-col items-center animate-pulse">
+                <img
+                  src="/logo.png"
+                  alt="Suyog logo"
+                  className="w-[240px] h-[80px] object-contain mb-5"
+                />
+                <h1 className="text-3xl font-serif italic font-bold text-slate-800 tracking-tight">
+                  Suyog Support Hub
+                </h1>
+              </div>
+              <div className="absolute bottom-16">
+                <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            </div>
           )}
-        </header>
 
-        {/* SCREEN ROUTING */}
-        <main className="flex-grow p-5 overflow-y-auto">
-
-          {/* SCREEN 1: HUB PORTAL */}
+          {/* SCREEN 2: HUB SCREEN */}
           {currentScreen === 'hub' && (
-            <div className="space-y-6 flex flex-col justify-center min-h-[500px]">
-              <div className="text-center space-y-2 mb-6">
-                <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">Suyog Support Hub</h2>
-                <p className="text-xs text-slate-400">Welcome! Select an option below to proceed.</p>
+            <div className="flex-grow bg-[#F8FAFC] flex flex-col justify-between min-h-[750px] p-6 pt-16">
+              
+              {/* Header Logo */}
+              <div className="flex flex-col items-center mb-10">
+                <img
+                  src="/logo.png"
+                  alt="Suyog Support Hub Logo"
+                  className="w-[200px] h-[70px] object-contain mb-4"
+                />
+                <h1 className="text-3xl font-serif italic font-bold text-slate-800">
+                  Suyog Support Hub
+                </h1>
               </div>
 
-              <div className="space-y-4">
-                {/* Raise Ticket Button */}
+              {/* Action Buttons */}
+              <div className="space-y-4 flex-grow flex flex-col justify-center">
+                
+                {/* Raise Issue Card */}
                 <button
-                  onClick={() => setCurrentScreen('raise')}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-2xl p-5 text-left border border-slate-800 shadow-sm transition hover:scale-[1.01] active:scale-[0.99] flex items-center justify-between"
+                  onClick={() => setCurrentScreen('raise_query_form')}
+                  className="w-full bg-white hover:bg-slate-50 border-1.5 border-slate-200 rounded-[20px] p-6 text-left shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all hover:scale-[1.01] active:scale-[0.99] flex flex-col"
                 >
-                  <div>
-                    <h3 className="font-bold text-base">Raise Issue</h3>
-                    <p className="text-slate-400 text-xs mt-1">File support requests, issues and tickets</p>
-                  </div>
-                  <span className="text-xl">🛠️</span>
+                  <span className="text-xl font-bold text-slate-850 mb-1">Raise Issue</span>
+                  <span className="text-xs text-slate-400">File support requests, issues and tickets</span>
                 </button>
 
-                {/* New Enquiry Button */}
+                {/* New Enquiry Card */}
                 <button
-                  onClick={() => setCurrentScreen('enquiry')}
-                  className="w-full bg-white hover:bg-slate-50 text-slate-900 rounded-2xl p-5 text-left border border-slate-200 shadow-sm transition hover:scale-[1.01] active:scale-[0.99] flex items-center justify-between"
+                  onClick={() => setCurrentScreen('new_enquiry_form')}
+                  className="w-full bg-white hover:bg-slate-50 border-1.5 border-slate-200 rounded-[20px] p-6 text-left shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all hover:scale-[1.01] active:scale-[0.99] flex flex-col"
                 >
-                  <div>
-                    <h3 className="font-bold text-base">New Enquiry</h3>
-                    <p className="text-slate-500 text-xs mt-1">Get product catalog, pricing, demo calls</p>
-                  </div>
-                  <span className="text-xl">📞</span>
+                  <span className="text-xl font-bold text-slate-850 mb-1">New Enquiry</span>
+                  <span className="text-xs text-slate-400">Get product catalog, pricing, demo calls</span>
                 </button>
 
-                {/* View Tickets History Button */}
-                <button
-                  onClick={() => setCurrentScreen('history')}
-                  className="w-full bg-white hover:bg-slate-50 text-slate-900 rounded-2xl p-5 text-left border border-slate-200 shadow-sm transition hover:scale-[1.01] active:scale-[0.99] flex items-center justify-between"
+              </div>
+
+              {/* Hub Footer */}
+              <div className="text-center mt-10">
+                <p className="text-xs text-slate-400 font-medium">Visit official website</p>
+                <a
+                  href="https://www.suyog.net"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-emerald-500 font-semibold underline mt-1 inline-block"
                 >
-                  <div>
-                    <h3 className="font-bold text-base">My Support History</h3>
-                    <p className="text-slate-500 text-xs mt-1">Track status and review technician notes</p>
-                  </div>
-                  <span className="text-xl">📋</span>
+                  www.suyog.net
+                </a>
+              </div>
+
+            </div>
+          )}
+
+          {/* SCREEN 3: RAISE QUERY FORM */}
+          {currentScreen === 'raise_query_form' && (
+            <div className="flex-grow bg-[#F8FAFC] min-h-[750px] p-5">
+              
+              {/* Form Header */}
+              <div className="flex items-center justify-between mb-6 bg-white border-b border-slate-100 px-4 py-3 -mx-5 -mt-5">
+                <button
+                  onClick={() => setCurrentScreen('hub')}
+                  className="text-slate-400 hover:text-slate-600 font-semibold text-sm py-1 flex items-center"
+                >
+                  ← Hub
+                </button>
+                <h2 className="text-lg font-bold text-slate-850">Raise Issue</h2>
+                <button
+                  onClick={() => {
+                    setCurrentScreen('query_list');
+                    fetchTicketHistory();
+                  }}
+                  className="bg-slate-100 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-650 hover:bg-slate-200 transition"
+                >
+                  View Records
                 </button>
               </div>
 
-              {tickets.length > 0 && (
-                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center gap-3">
-                  <div className="bg-emerald-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold animate-pulse">
-                    ✓
+              {submitSuccess ? (
+                <div className="bg-white rounded-3xl p-8 shadow-sm flex flex-col items-center justify-center py-16 mt-4">
+                  <span className="text-5xl mb-4">✅</span>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">Issue Raised Successfully!</h3>
+                  <p className="text-sm text-slate-500 text-center">We will address your request shortly.</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-3xl p-6 shadow-[0_4px_16px_rgba(0,0,0,0.04)] space-y-4">
+                  
+                  {/* Customer Name */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-600">Customer Name / Company</label>
+                    <input
+                      type="text"
+                      placeholder="Enter company name"
+                      value={queryName}
+                      onChange={(e) => setQueryName(e.target.value)}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
+                        formErrors.queryName ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-800 placeholder-slate-300'
+                      }`}
+                    />
+                    {formErrors.queryName && <p className="text-[11px] text-red-500 font-bold">{formErrors.queryName}</p>}
                   </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-bold text-emerald-800">You have active queries</p>
+
+                  {/* Serial or Email */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-600">Tally Serial No. or Email ID</label>
+                    <input
+                      type="text"
+                      placeholder="9-digit serial or email address"
+                      value={querySerialOrEmail}
+                      onChange={(e) => setQuerySerialOrEmail(e.target.value)}
+                      onBlur={handleSerialOrEmailBlur}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
+                        formErrors.querySerialOrEmail ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-800 placeholder-slate-300'
+                      }`}
+                    />
+                    {formErrors.querySerialOrEmail && <p className="text-[11px] text-red-500 font-bold">{formErrors.querySerialOrEmail}</p>}
+                  </div>
+
+                  {/* Mobile */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-600">Mobile No.</label>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      placeholder="10-digit mobile number"
+                      value={queryMobile}
+                      onChange={(e) => setQueryMobile(e.target.value)}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
+                        formErrors.queryMobile ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-800 placeholder-slate-300'
+                      }`}
+                    />
+                    {formErrors.queryMobile && <p className="text-[11px] text-red-500 font-bold">{formErrors.queryMobile}</p>}
+                  </div>
+
+                  {/* Issue Type Selector */}
+                  <div className="space-y-1.5 relative">
+                    <label className="block text-xs font-semibold text-slate-600">Type of Issue</label>
                     <button
-                      onClick={() => setCurrentScreen('history')}
-                      className="text-[11px] text-emerald-600 font-bold underline"
+                      type="button"
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold flex items-center justify-between transition ${
+                        formErrors.queryType ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC]'
+                      }`}
                     >
-                      Track status ({tickets.length} tickets) →
+                      <span className={queryType === 'Select your query type' ? 'text-slate-400' : 'text-slate-800'}>
+                        {queryType}
+                      </span>
+                      <span className="text-[10px] text-slate-400">{showDropdown ? '▲' : '▼'}</span>
                     </button>
+                    {formErrors.queryType && <p className="text-[11px] text-red-500 font-bold">{formErrors.queryType}</p>}
+
+                    {showDropdown && (
+                      <div className="absolute left-0 right-0 z-20 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                        {issueTypes.filter(t => t !== 'Select your query type').map((type) => (
+                          <button
+                            type="button"
+                            key={type}
+                            onClick={() => {
+                              setQueryType(type);
+                              setShowDropdown(false);
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm hover:bg-slate-50 transition border-b border-slate-100 last:border-0 text-slate-850"
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
+
+                  {/* Description */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-600">Issue Description</label>
+                    <textarea
+                      rows={3}
+                      placeholder="Describe your issue in detail..."
+                      value={queryDesc}
+                      onChange={(e) => setQueryDesc(e.target.value)}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
+                        formErrors.queryDesc ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-800 placeholder-slate-300'
+                      }`}
+                    />
+                    {formErrors.queryDesc && <p className="text-[11px] text-red-500 font-bold">{formErrors.queryDesc}</p>}
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    onClick={handleRaiseQuerySubmit}
+                    disabled={loading}
+                    className="w-full bg-[#10B981] hover:bg-emerald-600 text-white rounded-xl py-3.5 font-bold text-sm shadow-md transition disabled:opacity-60 flex items-center justify-center"
+                  >
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      'Raise Issue'
+                    )}
+                  </button>
+
                 </div>
               )}
             </div>
           )}
 
-          {/* SCREEN 2: RAISE ISSUE FORM */}
-          {currentScreen === 'raise' && (
-            <div className="space-y-5">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold text-slate-800">Raise Support Issue</h2>
-                <p className="text-xs text-slate-400">Fill in the fields below. A technician will contact you shortly.</p>
+          {/* SCREEN 4: NEW ENQUIRY FORM */}
+          {currentScreen === 'new_enquiry_form' && (
+            <div className="flex-grow bg-[#F8FAFC] min-h-[750px] p-5">
+              
+              {/* Form Header */}
+              <div className="flex items-center justify-between mb-6 bg-white border-b border-slate-100 px-4 py-3 -mx-5 -mt-5">
+                <button
+                  onClick={() => setCurrentScreen('hub')}
+                  className="text-slate-400 hover:text-slate-600 font-semibold text-sm py-1 flex items-center"
+                >
+                  ← Hub
+                </button>
+                <h2 className="text-lg font-bold text-slate-850">New Enquiry</h2>
+                <div className="w-10" /> {/* Spacer */}
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Unified input: Tally Serial No. or Email ID */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Tally Serial No. or Email ID
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="9-digit serial or email address"
-                    value={serialOrEmail}
-                    onChange={(e) => setSerialOrEmail(e.target.value)}
-                    onBlur={handleBlurValidation}
-                    className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 ${validationError
-                        ? 'border-red-300 bg-red-50 focus:ring-red-500/20'
-                        : 'border-slate-200 focus:border-slate-900 focus:ring-slate-900/10'
+              {submitSuccess ? (
+                <div className="bg-white rounded-3xl p-8 shadow-sm flex flex-col items-center justify-center py-16 mt-4">
+                  <span className="text-5xl mb-4">📩</span>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">Enquiry Logged!</h3>
+                  <p className="text-sm text-slate-500 text-center font-medium">Representative will contact you soon.</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-3xl p-6 shadow-[0_4px_16px_rgba(0,0,0,0.04)] space-y-4">
+                  
+                  {/* Name */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-600">Contact Name</label>
+                    <input
+                      type="text"
+                      placeholder="Your name"
+                      value={enquiryName}
+                      onChange={(e) => setEnquiryName(e.target.value)}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
+                        formErrors.enquiryName ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-850 placeholder-slate-300'
                       }`}
-                  />
-                  {validationError && (
-                    <p className="text-xs font-bold text-red-500 mt-1">{validationError}</p>
-                  )}
-                </div>
+                    />
+                    {formErrors.enquiryName && <p className="text-[11px] text-red-500 font-bold">{formErrors.enquiryName}</p>}
+                  </div>
 
-                {/* Customer Name */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Customer Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter customer or company name"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 text-sm font-semibold transition focus:outline-none"
-                  />
-                </div>
+                  {/* Phone */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-600">Phone Number</label>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      placeholder="10-digit mobile number"
+                      value={enquiryPhone}
+                      onChange={(e) => setEnquiryPhone(e.target.value)}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
+                        formErrors.enquiryPhone ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-850 placeholder-slate-300'
+                      }`}
+                    />
+                    {formErrors.enquiryPhone && <p className="text-[11px] text-red-500 font-bold">{formErrors.enquiryPhone}</p>}
+                  </div>
 
-                {/* Mobile No */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Mobile No.
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="Enter 10-digit mobile number"
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 text-sm font-semibold transition focus:outline-none"
-                  />
-                </div>
+                  {/* Details */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-600">Enquiry Details / Requirements</label>
+                    <textarea
+                      rows={4}
+                      placeholder="Write how we can assist you..."
+                      value={enquiryDetails}
+                      onChange={(e) => setEnquiryDetails(e.target.value)}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
+                        formErrors.enquiryDetails ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-850 placeholder-slate-305'
+                      }`}
+                    />
+                    {formErrors.enquiryDetails && <p className="text-[11px] text-red-500 font-bold">{formErrors.enquiryDetails}</p>}
+                  </div>
 
-                {/* Issue Type */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Issue Type
-                  </label>
-                  <select
-                    value={issueType}
-                    onChange={(e) => setIssueType(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 text-sm font-semibold bg-white transition focus:outline-none"
+                  {/* Submit Button */}
+                  <button
+                    onClick={handleEnquirySubmit}
+                    disabled={loading}
+                    className="w-full bg-[#10B981] hover:bg-emerald-600 text-white rounded-xl py-3.5 font-bold text-sm shadow-md transition disabled:opacity-60 flex items-center justify-center"
                   >
-                    <option value="Tally Prime">Tally Prime</option>
-                    <option value="Tally ERP 9">Tally ERP 9</option>
-                    <option value="License Activation">License Activation</option>
-                    <option value="Data Recovery">Data Recovery</option>
-                    <option value="Others">Others</option>
-                  </select>
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      'Submit Enquiry'
+                    )}
+                  </button>
+
                 </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Describe your Issue
-                  </label>
-                  <textarea
-                    required
-                    rows={3}
-                    placeholder="Explain the problem you are facing..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 text-sm font-semibold transition focus:outline-none"
-                  />
-                </div>
-
-                {successMessage && (
-                  <div className="bg-emerald-50 text-emerald-800 border border-emerald-100 p-3 rounded-xl text-center text-xs font-bold">
-                    {successMessage}
-                  </div>
-                )}
-
-                {/* Submit button */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded-xl py-3.5 font-bold text-sm shadow-md transition flex items-center justify-center gap-2"
-                >
-                  {loading ? 'Submitting...' : 'Submit Support Query'}
-                </button>
-              </form>
+              )}
             </div>
           )}
 
-          {/* SCREEN 3: NEW ENQUIRY FORM */}
-          {currentScreen === 'enquiry' && (
-            <div className="space-y-5">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold text-slate-800">New Enquiry</h2>
-                <p className="text-xs text-slate-400">Share your details and requirements. Our representative will contact you.</p>
-              </div>
-
-              <form onSubmit={handleEnquirySubmit} className="space-y-4">
-                {/* Customer Name */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter your name"
-                    value={enquiryName}
-                    onChange={(e) => setEnquiryName(e.target.value)}
-                    className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 ${enquiryValidationError && !enquiryName.trim()
-                        ? 'border-red-300 bg-red-50 focus:ring-red-500/20'
-                        : 'border-slate-200 focus:border-slate-900 focus:ring-slate-900/10'
-                      }`}
-                  />
-                </div>
-
-                {/* Mobile No */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Mobile No.
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="Enter 10-digit mobile number"
-                    value={enquiryPhone}
-                    onChange={(e) => setEnquiryPhone(e.target.value)}
-                    className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 ${enquiryValidationError && (enquiryPhone.trim().length < 10)
-                        ? 'border-red-300 bg-red-50 focus:ring-red-500/20'
-                        : 'border-slate-200 focus:border-slate-900 focus:ring-slate-900/10'
-                      }`}
-                  />
-                </div>
-
-                {/* Enquiry Details */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Enquiry Details / Requirements
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    placeholder="Specify software requirements, dynamic customizations, or demo slots..."
-                    value={enquiryDetails}
-                    onChange={(e) => setEnquiryDetails(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 text-sm font-semibold transition focus:outline-none"
-                  />
-                </div>
-
-                {enquiryValidationError && (
-                  <p className="text-xs font-bold text-red-500 mt-1">{enquiryValidationError}</p>
-                )}
-
-                {successMessage && (
-                  <div className="bg-emerald-50 text-emerald-800 border border-emerald-100 p-3 rounded-xl text-center text-xs font-bold">
-                    {successMessage}
-                  </div>
-                )}
-
-                {/* Submit button */}
+          {/* SCREEN 5: TICKETS HISTORY */}
+          {currentScreen === 'query_list' && (
+            <div className="flex-grow bg-[#F8FAFC] min-h-[750px] p-5">
+              
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6 bg-white border-b border-slate-100 px-4 py-3 -mx-5 -mt-5">
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded-xl py-3.5 font-bold text-sm shadow-md transition flex items-center justify-center gap-2"
+                  onClick={() => setCurrentScreen('raise_query_form')}
+                  className="text-slate-400 hover:text-slate-600 font-semibold text-sm py-1 flex items-center"
                 >
-                  {loading ? 'Submitting...' : 'Submit Enquiry'}
+                  ← Form
                 </button>
-              </form>
-            </div>
-          )}
-
-          {/* SCREEN 4: TICKETS HISTORY */}
-          {currentScreen === 'history' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-800">Support History</h2>
-                  <p className="text-xs text-slate-400">Private record of tickets created on this device.</p>
-                </div>
+                <h2 className="text-lg font-bold text-slate-850">Query Records</h2>
                 <button
                   onClick={fetchTicketHistory}
+                  disabled={fetchingHistory}
                   className="p-2 text-slate-400 hover:text-emerald-500 transition"
-                  title="Reload tickets"
                 >
                   🔄
                 </button>
               </div>
 
               {tickets.length === 0 ? (
-                <div className="text-center py-12 space-y-2">
-                  <p className="text-slate-400 text-sm font-medium">No tickets raised from this browser yet.</p>
-                  <button
-                    onClick={() => setCurrentScreen('raise')}
-                    className="text-xs text-emerald-600 font-bold underline"
-                  >
-                    Raise your first issue now →
-                  </button>
+                <div className="text-center py-20">
+                  <p className="text-slate-400 text-sm font-semibold">No queries raised yet.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {tickets.map((t) => (
                     <div
                       key={t.id}
-                      className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm space-y-3"
+                      className="bg-white border border-[#E2E8F0] rounded-[18px] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)] space-y-3"
                     >
-                      <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                        <span className="text-[11px] font-bold text-slate-400">ID: {t.id.slice(0, 8).toUpperCase()}</span>
-                        <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${t.status === 'resolved'
-                            ? 'bg-emerald-50 text-emerald-600'
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-[#0F172A]">{t.customer_name}</span>
+                        <div className={`px-2.5 py-1 rounded-[8px] ${
+                          t.status === 'resolved'
+                            ? 'bg-[#D1FAE5]'
                             : t.status === 'assigned'
-                              ? 'bg-blue-50 text-blue-600'
-                              : 'bg-amber-50 text-amber-600'
+                            ? 'bg-[#DBEAFE]'
+                            : 'bg-[#FEF3C7]'
+                        }`}>
+                          <span className={`text-[11px] font-bold uppercase ${
+                            t.status === 'resolved'
+                              ? 'text-[#059669]'
+                              : t.status === 'assigned'
+                              ? 'text-[#2563EB]'
+                              : 'text-[#D97706]'
                           }`}>
-                          {t.status}
-                        </span>
+                            {t.status}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <p className="text-sm font-bold text-slate-800">{t.issue_type}</p>
-                        <p className="text-xs text-slate-500 font-medium">
-                          Identifier: {t.tally_serial !== 'N/A' ? `Tally Serial ${t.tally_serial}` : t.email}
-                        </p>
-                        <p className="text-xs text-slate-600 italic">"{t.description}"</p>
+                      <div className="flex justify-between items-center text-xs text-[#64748B]">
+                        <span>ID: {t.id.slice(0, 8).toUpperCase()}</span>
+                        <span className="text-[#10B981] font-semibold">{t.issue_type}</span>
                       </div>
 
+                      <p className="text-sm text-[#334155] leading-relaxed">
+                        {t.description}
+                      </p>
+
+                      {/* Pending Duration Panel */}
+                      {t.status !== 'resolved' && (
+                        <div className="flex items-center mt-3 pt-3 border-t border-[#F1F5F9]">
+                          <span className="text-xs text-[#64748B] mr-1.5">Pending duration:</span>
+                          <span className="text-xs font-bold text-[#D97706]">
+                            {Math.max(1, Math.round((new Date().getTime() - new Date(t.created_at).getTime()) / 60000))} min
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Resolved Panel */}
                       {t.status === 'resolved' && (
-                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-1.5">
-                          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Resolution Status</p>
-                          <p className="text-xs text-slate-600 font-bold">✓ Successfully Resolved</p>
+                        <div className="mt-3 pt-3 border-t border-[#F1F5F9] space-y-2">
                           {t.feedback?.resolution_notes && (
-                            <p className="text-xs text-slate-500 italic">
-                              💡 Tech Note: "{t.feedback.resolution_notes}"
-                            </p>
+                            <div className="bg-[#F8FAFC] rounded-lg p-2.5 border border-slate-100">
+                              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Tech Notes</p>
+                              <p className="text-xs text-[#475569] font-medium">
+                                💡 Note: {t.feedback.resolution_notes}
+                              </p>
+                            </div>
+                          )}
+
+                          {t.feedback && t.feedback.rating ? (
+                            <div className="bg-[#F8FAFC] rounded-lg p-2.5 border border-slate-100">
+                              <div className="text-yellow-500 text-sm mb-1">
+                                {'★'.repeat(t.feedback.rating)}
+                                {'☆'.repeat(5 - t.feedback.rating)}
+                              </div>
+                              {t.feedback.comments && (
+                                <p className="text-xs text-[#475569] italic">"{t.feedback.comments}"</p>
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setRatingTicket(t);
+                                setRatingVal(5);
+                                setFeedbackText('');
+                              }}
+                              className="w-full bg-[#E6F4FE] hover:bg-blue-100 text-[#2563EB] text-xs font-bold py-2.5 rounded-lg text-center transition"
+                            >
+                              Rate Support Experience
+                            </button>
                           )}
                         </div>
                       )}
+
                     </div>
                   ))}
                 </div>
@@ -607,20 +749,67 @@ export default function IosAppPortal() {
             </div>
           )}
 
-        </main>
+        </div>
 
-        {/* APP FOOTER */}
-        <footer className="bg-slate-50 border-t border-slate-100 px-6 py-4 text-center">
-          <p className="text-[10px] text-slate-400 font-medium">Visit official website</p>
-          <a
-            href="https://www.suyog.net"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-bold text-emerald-600 hover:text-emerald-500 transition"
-          >
-            www.suyog.net
-          </a>
-        </footer>
+        {/* FEEDBACK RATING MODAL */}
+        {ratingTicket && (
+          <div className="absolute inset-0 z-30 bg-black/40 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-5 w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-slate-900">Rate Support Experience</h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  For issue: {ratingTicket.issue_type} ({ratingTicket.customer_name})
+                </p>
+              </div>
+
+              {/* Star Selector */}
+              <div className="flex justify-center gap-2 py-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRatingVal(star)}
+                    className="text-3xl text-amber-400 focus:outline-none transition-transform active:scale-95"
+                  >
+                    {ratingVal >= star ? '★' : '☆'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Comments Textarea */}
+              <textarea
+                rows={3}
+                placeholder="Tell us what went well or what we can improve..."
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRatingTicket(null)}
+                  className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold py-2.5 rounded-xl text-xs transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFeedbackSubmit}
+                  disabled={loading}
+                  className="flex-grow bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    'Submit'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
