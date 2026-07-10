@@ -369,8 +369,8 @@ export default function IosAppPortal() {
                   onClick={() => setCurrentScreen('raise_query_form')}
                   className="w-full bg-white hover:bg-slate-50 border-1.5 border-slate-200 rounded-[20px] p-6 text-left shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all hover:scale-[1.01] active:scale-[0.99] flex flex-col"
                 >
-                  <span className="text-xl font-bold text-slate-850 mb-1">Raise Issue</span>
-                  <span className="text-xs text-slate-400">File support requests, issues and tickets</span>
+                  <span className="text-xl font-bold text-[#0F172A] mb-1">Raise Issue</span>
+                  <span className="text-xs text-[#64748B]">File support requests, issues and tickets</span>
                 </button>
 
                 {/* New Enquiry Card */}
@@ -378,8 +378,8 @@ export default function IosAppPortal() {
                   onClick={() => setCurrentScreen('new_enquiry_form')}
                   className="w-full bg-white hover:bg-slate-50 border-1.5 border-slate-200 rounded-[20px] p-6 text-left shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all hover:scale-[1.01] active:scale-[0.99] flex flex-col"
                 >
-                  <span className="text-xl font-bold text-slate-850 mb-1">New Enquiry</span>
-                  <span className="text-xs text-slate-400">Get product catalog, pricing, demo calls</span>
+                  <span className="text-xl font-bold text-[#0F172A] mb-1">New Enquiry</span>
+                  <span className="text-xs text-[#64748B]">Get product catalog, pricing, demo calls</span>
                 </button>
 
               </div>
@@ -412,13 +412,13 @@ export default function IosAppPortal() {
                 >
                   ← Hub
                 </button>
-                <h2 className="text-lg font-bold text-slate-850">Raise Issue</h2>
+                <h2 className="text-lg font-bold text-[#0F172A]">Raise Issue</h2>
                 <button
                   onClick={() => {
                     setCurrentScreen('query_list');
                     fetchTicketHistory();
                   }}
-                  className="bg-slate-100 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-650 hover:bg-slate-200 transition"
+                  className="bg-slate-100 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#475569] hover:bg-slate-200 transition"
                 >
                   View Records
                 </button>
@@ -507,7 +507,7 @@ export default function IosAppPortal() {
                               setQueryType(type);
                               setShowDropdown(false);
                             }}
-                            className="w-full px-4 py-3 text-left text-sm hover:bg-slate-50 transition border-b border-slate-100 last:border-0 text-slate-850"
+                            className="w-full px-4 py-3 text-left text-sm hover:bg-slate-50 transition border-b border-slate-100 last:border-0 text-[#334155]"
                           >
                             {type}
                           </button>
@@ -561,7 +561,7 @@ export default function IosAppPortal() {
                 >
                   ← Hub
                 </button>
-                <h2 className="text-lg font-bold text-slate-850">New Enquiry</h2>
+                <h2 className="text-lg font-bold text-[#0F172A]">New Enquiry</h2>
                 <div className="w-10" /> {/* Spacer */}
               </div>
 
@@ -583,7 +583,7 @@ export default function IosAppPortal() {
                       value={enquiryName}
                       onChange={(e) => setEnquiryName(e.target.value)}
                       className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
-                        formErrors.enquiryName ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-850 placeholder-slate-300'
+                        formErrors.enquiryName ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-[#0F172A] placeholder-slate-300'
                       }`}
                     />
                     {formErrors.enquiryName && <p className="text-[11px] text-red-500 font-bold">{formErrors.enquiryName}</p>}
@@ -599,7 +599,7 @@ export default function IosAppPortal() {
                       value={enquiryPhone}
                       onChange={(e) => setEnquiryPhone(e.target.value)}
                       className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
-                        formErrors.enquiryPhone ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-850 placeholder-slate-300'
+                        formErrors.enquiryPhone ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-[#0F172A] placeholder-slate-300'
                       }`}
                     />
                     {formErrors.enquiryPhone && <p className="text-[11px] text-red-500 font-bold">{formErrors.enquiryPhone}</p>}
@@ -614,7 +614,7 @@ export default function IosAppPortal() {
                       value={enquiryDetails}
                       onChange={(e) => setEnquiryDetails(e.target.value)}
                       className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
-                        formErrors.enquiryDetails ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-850 placeholder-slate-305'
+                        formErrors.enquiryDetails ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-[#0F172A] placeholder-slate-305'
                       }`}
                     />
                     {formErrors.enquiryDetails && <p className="text-[11px] text-red-500 font-bold">{formErrors.enquiryDetails}</p>}
@@ -650,7 +650,7 @@ export default function IosAppPortal() {
                 >
                   ← Form
                 </button>
-                <h2 className="text-lg font-bold text-slate-850">Query Records</h2>
+                <h2 className="text-lg font-bold text-[#0F172A]">Query Records</h2>
                 <button
                   onClick={fetchTicketHistory}
                   disabled={fetchingHistory}
