@@ -67,6 +67,11 @@ export default function IosAppPortal() {
   const [ratingVal, setRatingVal] = useState(5);
   const [feedbackText, setFeedbackText] = useState('');
 
+  // PWA Install states
+  const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isIosMobile, setIsIosMobile] = useState(false);
+
   const issueTypes = [
     'Select your query type',
     'Tally Prime',
@@ -86,9 +91,10 @@ export default function IosAppPortal() {
     }
   }, [currentScreen]);
 
-  // Load local ticket IDs on mount
+  // Load local ticket IDs and setup PWA prompt
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Load stored ticket IDs
       const stored = localStorage.getItem('suyog_ticket_ids');
       if (stored) {
         try {
@@ -99,6 +105,32 @@ export default function IosAppPortal() {
         } catch (e) {
           console.error('Error parsing stored ticket IDs', e);
         }
+      }
+
+      // Check if already running as PWA standalone
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+        || (window.navigator as any).standalone;
+
+      if (!isStandalone) {
+        // Capture Android beforeinstallprompt
+        const handleBeforeInstallPrompt = (e: Event) => {
+          e.preventDefault();
+          setDeferredPrompt(e);
+          setShowPwaPrompt(true);
+        };
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+        // Detect iOS device
+        const ua = window.navigator.userAgent.toLowerCase();
+        const isIos = ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod');
+        if (isIos) {
+          setIsIosMobile(true);
+          setShowPwaPrompt(true);
+        }
+
+        return () => {
+          window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        };
       }
     }
   }, []);
@@ -161,6 +193,18 @@ export default function IosAppPortal() {
         setFormErrors((prev) => ({ ...prev, querySerialOrEmail: '' }));
       }
     }
+  };
+
+  // Trigger Android/Chrome Install Prompt
+  const handleAndroidInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    }
+    setDeferredPrompt(null);
+    setShowPwaPrompt(false);
   };
 
   // Submit Ticket (Raise Issue)
@@ -232,7 +276,7 @@ export default function IosAppPortal() {
     } catch (err: any) {
       console.error(err);
       alert('Error: ' + (err.message || 'Could not submit request.'));
-    } finally {
+    } fill {
       setLoading(false);
     }
   };
@@ -442,13 +486,13 @@ export default function IosAppPortal() {
                       value={queryName}
                       onChange={(e) => setQueryName(e.target.value)}
                       className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
-                        formErrors.queryName ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-800 placeholder-slate-300'
+                        formErrors.queryName ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-[#0F172A] placeholder-slate-300'
                       }`}
                     />
                     {formErrors.queryName && <p className="text-[11px] text-red-500 font-bold">{formErrors.queryName}</p>}
                   </div>
 
-                  {/* Serial or Email */}
+                  {/* Tally Serial or Email */}
                   <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-slate-600">Tally Serial No. or Email ID</label>
                     <input
@@ -458,7 +502,7 @@ export default function IosAppPortal() {
                       onChange={(e) => setQuerySerialOrEmail(e.target.value)}
                       onBlur={handleSerialOrEmailBlur}
                       className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
-                        formErrors.querySerialOrEmail ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-800 placeholder-slate-300'
+                        formErrors.querySerialOrEmail ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-[#0F172A] placeholder-slate-300'
                       }`}
                     />
                     {formErrors.querySerialOrEmail && <p className="text-[11px] text-red-500 font-bold">{formErrors.querySerialOrEmail}</p>}
@@ -474,7 +518,7 @@ export default function IosAppPortal() {
                       value={queryMobile}
                       onChange={(e) => setQueryMobile(e.target.value)}
                       className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
-                        formErrors.queryMobile ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-800 placeholder-slate-300'
+                        formErrors.queryMobile ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-[#0F172A] placeholder-slate-300'
                       }`}
                     />
                     {formErrors.queryMobile && <p className="text-[11px] text-red-500 font-bold">{formErrors.queryMobile}</p>}
@@ -525,7 +569,7 @@ export default function IosAppPortal() {
                       value={queryDesc}
                       onChange={(e) => setQueryDesc(e.target.value)}
                       className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
-                        formErrors.queryDesc ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-slate-800 placeholder-slate-300'
+                        formErrors.queryDesc ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-[#0F172A] placeholder-slate-300'
                       }`}
                     />
                     {formErrors.queryDesc && <p className="text-[11px] text-red-500 font-bold">{formErrors.queryDesc}</p>}
@@ -535,7 +579,7 @@ export default function IosAppPortal() {
                   <button
                     onClick={handleRaiseQuerySubmit}
                     disabled={loading}
-                    className="w-full bg-[#10B981] hover:bg-emerald-600 text-white rounded-xl py-3.5 font-bold text-sm shadow-md transition disabled:opacity-60 flex items-center justify-center"
+                    className="w-full bg-[#10B981] hover:bg-[#059669] text-white rounded-xl py-3.5 font-bold text-sm shadow-md transition disabled:opacity-60 flex items-center justify-center"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -624,7 +668,7 @@ export default function IosAppPortal() {
                   <button
                     onClick={handleEnquirySubmit}
                     disabled={loading}
-                    className="w-full bg-[#10B981] hover:bg-emerald-600 text-white rounded-xl py-3.5 font-bold text-sm shadow-md transition disabled:opacity-60 flex items-center justify-center"
+                    className="w-full bg-[#10B981] hover:bg-[#059669] text-white rounded-xl py-3.5 font-bold text-sm shadow-md transition disabled:opacity-60 flex items-center justify-center"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -813,6 +857,40 @@ export default function IosAppPortal() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* FLOATING PWA DOWNLOAD/INSTALL PROMPT BANNER */}
+        {showPwaPrompt && (
+          <div className="absolute bottom-5 left-4 right-4 z-40 bg-slate-900 text-white rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-300">
+            <div className="flex-1 space-y-1">
+              <h4 className="text-sm font-bold">Add to Home Screen</h4>
+              {isIosMobile ? (
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Tap the Safari share icon <span className="text-xs">📤</span> then scroll and select <span className="font-bold">"Add to Home Screen"</span> <span className="text-xs">➕</span>.
+                </p>
+              ) : (
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Install this support app on your device for a faster, better experience.
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {!isIosMobile && deferredPrompt && (
+                <button
+                  onClick={handleAndroidInstall}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm transition active:scale-95"
+                >
+                  Install
+                </button>
+              )}
+              <button
+                onClick={() => setShowPwaPrompt(false)}
+                className="text-slate-400 hover:text-white text-xs font-bold p-1"
+              >
+                ✕
+              </button>
             </div>
           </div>
         )}
