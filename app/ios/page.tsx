@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useEffect, useState } from 'react';
 
 // Tally Serial validation: Must be exactly 9 digits, and the sum of digits must equal 9.
 const validateTallySerial = (serial: string): boolean => {
@@ -38,25 +38,25 @@ interface Ticket {
 
 export default function IosAppPortal() {
   const [currentScreen, setCurrentScreen] = useState<'hub' | 'raise' | 'history' | 'enquiry'>('hub');
-  
+
   // Issue Form states
   const [customerName, setCustomerName] = useState('');
   const [serialOrEmail, setSerialOrEmail] = useState('');
   const [mobile, setMobile] = useState('');
   const [issueType, setIssueType] = useState('Tally Prime');
   const [description, setDescription] = useState('');
-  
+
   // Enquiry Form states
   const [enquiryName, setEnquiryName] = useState('');
   const [enquiryPhone, setEnquiryPhone] = useState('');
   const [enquiryDetails, setEnquiryDetails] = useState('');
-  
+
   // Validation / Loading states
   const [validationError, setValidationError] = useState('');
   const [enquiryValidationError, setEnquiryValidationError] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  
+
   // Local tickets history states
   const [savedTicketIds, setSavedTicketIds] = useState<string[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -91,9 +91,9 @@ export default function IosAppPortal() {
         .from('tickets')
         .select('*')
         .in('id', savedTicketIds);
-      
+
       if (error) throw error;
-      
+
       if (data) {
         const sorted = [...data].sort(
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -193,7 +193,7 @@ export default function IosAppPortal() {
         setValidationError('');
         setDescription('');
         setSuccessMessage('Issue raised successfully!');
-        
+
         setTimeout(() => {
           setSuccessMessage('');
           setCurrentScreen('hub');
@@ -257,7 +257,7 @@ export default function IosAppPortal() {
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-0 sm:p-4 select-none" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* PWA iOS Mobile Container Simulator on Desktop */}
       <div className="w-full max-w-md bg-white min-h-screen sm:min-h-[812px] sm:rounded-[36px] sm:shadow-2xl overflow-hidden flex flex-col justify-between border-0 sm:border-8 border-slate-900 relative">
-        
+
         {/* APP HEADER */}
         <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-2.5">
@@ -275,7 +275,7 @@ export default function IosAppPortal() {
 
         {/* SCREEN ROUTING */}
         <main className="flex-grow p-5 overflow-y-auto">
-          
+
           {/* SCREEN 1: HUB PORTAL */}
           {currentScreen === 'hub' && (
             <div className="space-y-6 flex flex-col justify-center min-h-[500px]">
@@ -329,7 +329,7 @@ export default function IosAppPortal() {
                   </div>
                   <div className="flex-1">
                     <p className="text-xs font-bold text-emerald-800">You have active queries</p>
-                    <button 
+                    <button
                       onClick={() => setCurrentScreen('history')}
                       className="text-[11px] text-emerald-600 font-bold underline"
                     >
@@ -362,11 +362,10 @@ export default function IosAppPortal() {
                     value={serialOrEmail}
                     onChange={(e) => setSerialOrEmail(e.target.value)}
                     onBlur={handleBlurValidation}
-                    className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 ${
-                      validationError
+                    className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 ${validationError
                         ? 'border-red-300 bg-red-50 focus:ring-red-500/20'
                         : 'border-slate-200 focus:border-slate-900 focus:ring-slate-900/10'
-                    }`}
+                      }`}
                   />
                   {validationError && (
                     <p className="text-xs font-bold text-red-500 mt-1">{validationError}</p>
@@ -474,11 +473,10 @@ export default function IosAppPortal() {
                     placeholder="Enter your name"
                     value={enquiryName}
                     onChange={(e) => setEnquiryName(e.target.value)}
-                    className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 ${
-                      enquiryValidationError && !enquiryName.trim()
+                    className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 ${enquiryValidationError && !enquiryName.trim()
                         ? 'border-red-300 bg-red-50 focus:ring-red-500/20'
                         : 'border-slate-200 focus:border-slate-900 focus:ring-slate-900/10'
-                    }`}
+                      }`}
                   />
                 </div>
 
@@ -493,11 +491,10 @@ export default function IosAppPortal() {
                     placeholder="Enter 10-digit mobile number"
                     value={enquiryPhone}
                     onChange={(e) => setEnquiryPhone(e.target.value)}
-                    className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 ${
-                      enquiryValidationError && (enquiryPhone.trim().length < 10)
+                    className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 ${enquiryValidationError && (enquiryPhone.trim().length < 10)
                         ? 'border-red-300 bg-red-50 focus:ring-red-500/20'
                         : 'border-slate-200 focus:border-slate-900 focus:ring-slate-900/10'
-                    }`}
+                      }`}
                   />
                 </div>
 
@@ -574,13 +571,12 @@ export default function IosAppPortal() {
                     >
                       <div className="flex items-center justify-between border-b border-slate-50 pb-2">
                         <span className="text-[11px] font-bold text-slate-400">ID: {t.id.slice(0, 8).toUpperCase()}</span>
-                        <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
-                          t.status === 'resolved'
+                        <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${t.status === 'resolved'
                             ? 'bg-emerald-50 text-emerald-600'
                             : t.status === 'assigned'
-                            ? 'bg-blue-50 text-blue-600'
-                            : 'bg-amber-50 text-amber-600'
-                        }`}>
+                              ? 'bg-blue-50 text-blue-600'
+                              : 'bg-amber-50 text-amber-600'
+                          }`}>
                           {t.status}
                         </span>
                       </div>
