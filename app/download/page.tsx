@@ -58,7 +58,7 @@ export default function DownloadPage() {
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <span>🍏</span> Apple iOS User (PWA)
+            <span>🍏</span> Apple iOS User
           </button>
         </div>
 
@@ -73,10 +73,11 @@ export default function DownloadPage() {
               <div className="text-center pb-6 border-b border-slate-100">
                 <a
                   href="https://expo.dev/artifacts/eas/pSV8m6Cddm9WvLXHyiGNIZr0Yons3NTijgoqI-jbQtA.apk"
-                  download="suyog-support.apk"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white px-8 py-4 rounded-2xl font-bold text-base shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                 >
-                  <span className="text-xl">📥</span> Download Android App (.APK)
+                  <span>📥</span> Download Android App (.APK)
                 </a>
                 <p className="mt-2.5 text-[11px] text-slate-400">File size: ~18MB • Version 1.0.0</p>
               </div>
@@ -127,14 +128,16 @@ export default function DownloadPage() {
             /* IOS / IPHONE SETUP */
             <div className="space-y-8">
               {/* Call-to-action details */}
-              <div className="text-center pb-6 border-b border-slate-100 space-y-2">
-                <div className="inline-block bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3">
-                  <p className="text-xs text-slate-500">Open Safari browser on your iOS device and go to:</p>
-                  <p className="text-emerald-600 font-extrabold text-sm mt-1 tracking-wide select-all">
-                    suyogsupporthub.net
-                  </p>
-                </div>
-                <p className="text-[10px] text-slate-400">Note: This installation method only works in Safari web browser on iOS.</p>
+              <div className="text-center pb-6 border-b border-slate-100">
+                <a
+                  href="https://supporti-os.vercel.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white px-8 py-4 rounded-2xl font-bold text-base shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  <span>📱</span> Open iOS Support App
+                </a>
+                <p className="mt-2.5 text-[11px] text-slate-400">Launch client portal & tap share to add icon</p>
               </div>
 
               {/* Step-by-step instructions */}
