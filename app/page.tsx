@@ -11,6 +11,23 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // App Download Modal Popup states
+  const [showDownloadPopup, setShowDownloadPopup] = useState(false);
+  const [deviceOS, setDeviceOS] = useState<'android' | 'ios' | 'other'>('other');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const ua = window.navigator.userAgent.toLowerCase();
+      if (ua.includes('android')) {
+        setDeviceOS('android');
+        setShowDownloadPopup(true);
+      } else if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod') || (ua.includes('macintosh') && 'ontouchend' in document)) {
+        setDeviceOS('ios');
+        setShowDownloadPopup(true);
+      }
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +46,54 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 relative">
+      
+      {/* App Download Modal Overlay */}
+      {showDownloadPopup && (
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-center">
+              <div className="w-16 h-16 bg-[#F8FAFC] rounded-2xl flex items-center justify-center border border-slate-100 overflow-hidden">
+                <img src="/logo.png" alt="Suyog logo" className="w-12 h-12 object-contain" />
+              </div>
+            </div>
+            
+            <div className="space-y-1.5">
+              <h3 className="text-xl font-bold text-gray-900">Install Suyog Support</h3>
+              <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
+                Experience faster response times, active status tracking, and offline support queries directly from your phone.
+              </p>
+            </div>
+
+            <div className="space-y-2.5 pt-2">
+              {deviceOS === 'android' ? (
+                <a
+                  href="https://expo.dev/artifacts/eas/pSV8m6Cddm9WvLXHyiGNIZr0Yons3NTijgoqI-jbQtA.apk"
+                  download="suyog-support.apk"
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl text-sm shadow-md transition-all duration-150 active:scale-95 flex items-center justify-center gap-2"
+                >
+                  📥 Download Android App (.APK)
+                </a>
+              ) : (
+                <a
+                  href="/download"
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl text-sm shadow-md transition-all duration-150 active:scale-95 flex items-center justify-center gap-2"
+                >
+                  📱 Open iOS PWA Setup Portal
+                </a>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowDownloadPopup(false)}
+                className="w-full border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3 rounded-xl text-xs transition duration-150"
+              >
+                Continue to Staff Login
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="w-full max-w-md">
         {/* Logo & Header */}
         <div className="text-center mb-8">
