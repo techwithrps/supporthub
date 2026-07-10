@@ -7,6 +7,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Suyog Support Hub — Employee Dashboard",
   description: "Internal support ticket management system for Suyog employees",
+  icons: {
+    icon: "/apple-icon.png",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({
