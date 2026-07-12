@@ -191,11 +191,7 @@ export default function DownloadPage() {
           <p>© 2026 Suyog Support Hub. All rights reserved.</p>
           <div className="flex gap-4">
             <a href="https://www.suyog.net" target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-emerald-600">
-              Company Website
-            </a>
-            <span>•</span>
-            <a href="/" className="hover:underline hover:text-emerald-600">
-              Web Portal
+              Company Website →
             </a>
           </div>
         </div>
