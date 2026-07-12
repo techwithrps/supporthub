@@ -187,7 +187,7 @@ export default function IosAppPortal() {
       }
     } else {
       if (!validateTallySerial(input)) {
-        setFormErrors((prev) => ({ ...prev, querySerialOrEmail: 'Invalid Tally Serial No. or Email ID' }));
+        setFormErrors((prev) => ({ ...prev, querySerialOrEmail: 'Invalid Tally Serial No. or Tally Net Email_id' }));
       } else {
         setFormErrors((prev) => ({ ...prev, querySerialOrEmail: '' }));
       }
@@ -209,22 +209,24 @@ export default function IosAppPortal() {
   // Submit Ticket (Raise Issue)
   const handleRaiseQuerySubmit = async () => {
     const errors: Record<string, string> = {};
-    if (!queryName.trim()) errors.queryName = 'Name is required';
+    if (!queryName.trim()) errors.queryName = 'Company name/Contact person is required';
     if (!queryMobile.trim() || queryMobile.length < 10)
       errors.queryMobile = 'Enter a valid 10-digit phone number';
-    if (!queryDesc.trim()) errors.queryDesc = 'Please describe your issue';
+    if (queryType === 'Others' && !queryDesc.trim()) {
+      errors.queryDesc = 'Please describe your issue';
+    }
     if (queryType === 'Select your query type') errors.queryType = 'Please select an issue type';
 
     const input = querySerialOrEmail.trim();
     if (!input) {
-      errors.querySerialOrEmail = 'Tally Serial or Email is required';
+      errors.querySerialOrEmail = 'Tally Serial or Tally Net Email_id is required';
     } else if (input.includes('@')) {
       if (!validateEmail(input)) {
-        errors.querySerialOrEmail = 'Invalid Tally Serial No. or Email ID';
+        errors.querySerialOrEmail = 'Invalid Tally Serial No. or Tally Net Email_id';
       }
     } else {
       if (!validateTallySerial(input)) {
-        errors.querySerialOrEmail = 'Invalid Tally Serial No. or Email ID';
+        errors.querySerialOrEmail = 'Invalid Tally Serial No. or Tally Net Email_id';
       }
     }
 
@@ -478,10 +480,10 @@ export default function IosAppPortal() {
                   
                   {/* Customer Name */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-slate-600">Customer Name / Company</label>
+                    <label className="block text-xs font-semibold text-slate-600">Company Name / Contact Person</label>
                     <input
                       type="text"
-                      placeholder="Enter company name"
+                      placeholder="Enter Company Name / Contact Person"
                       value={queryName}
                       onChange={(e) => setQueryName(e.target.value)}
                       className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
@@ -493,10 +495,10 @@ export default function IosAppPortal() {
 
                   {/* Tally Serial or Email */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-slate-600">Tally Serial No. or Email ID</label>
+                    <label className="block text-xs font-semibold text-slate-600">Tally Serial No. or Tally Net Email_id</label>
                     <input
                       type="text"
-                      placeholder="9-digit serial or email address"
+                      placeholder="9-digit serial or Tally Net Email_id"
                       value={querySerialOrEmail}
                       onChange={(e) => setQuerySerialOrEmail(e.target.value)}
                       onBlur={handleSerialOrEmailBlur}
