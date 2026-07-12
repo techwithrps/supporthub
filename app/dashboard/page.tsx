@@ -292,11 +292,11 @@ export default function Dashboard() {
         .eq('id', enquiryId);
 
       if (error) throw error;
-      alert('Lead claimed! You can now update its status and add conversation notes.');
+      alert('Enquiry claimed! You can now update its status and add conversation notes.');
       fetchData();
     } catch (err: any) {
       console.error('Error claiming enquiry:', err);
-      alert('Failed to claim lead: ' + err.message);
+      alert('Failed to claim enquiry: ' + err.message);
     }
   };
 
@@ -312,12 +312,12 @@ export default function Dashboard() {
         .eq('id', enquiryId);
 
       if (error) throw error;
-      alert('Lead status updated successfully!');
+      alert('Enquiry status updated successfully!');
       setEditingEnquiryId(null);
       fetchData();
     } catch (err: any) {
       console.error('Error updating enquiry status:', err);
-      alert('Failed to update lead: ' + err.message);
+      alert('Failed to update enquiry: ' + err.message);
     } finally {
       setUpdatingCrm(false);
     }
@@ -1474,7 +1474,7 @@ export default function Dashboard() {
                           onClick={() => claimEnquiry(e.id)}
                           className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl text-xs font-bold transition"
                         >
-                          💼 Claim Lead
+                          💼 Claim Enquiry
                         </button>
                       ) : isClaimedByMe ? (
                         <div>
