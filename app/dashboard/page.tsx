@@ -30,14 +30,15 @@ interface Profile {
   created_at?: string;
 }
 
-function LiveTimer({ from, className = "text-orange-600" }: { from: string; className?: string }) {
+function LiveTimer({ from, to, className = "text-orange-600" }: { from: string; to?: string; className?: string }) {
   const [elapsed, setElapsed] = useState('');
 
   useEffect(() => {
     const calc = () => {
       const start = new Date(from).getTime();
-      const diff = Date.now() - start;
-      const s = Math.floor(diff / 1000);
+      const end = to ? new Date(to).getTime() : Date.now();
+      const diff = end - start;
+      const s = Math.max(0, Math.floor(diff / 1000));
       const m = Math.floor(s / 60);
       const h = Math.floor(m / 60);
       if (h > 0) setElapsed(`${h}h ${m % 60}m ${s % 60}s`);
@@ -45,9 +46,11 @@ function LiveTimer({ from, className = "text-orange-600" }: { from: string; clas
       else setElapsed(`${s}s`);
     };
     calc();
-    const id = setInterval(calc, 1000);
-    return () => clearInterval(id);
-  }, [from]);
+    if (!to) {
+      const id = setInterval(calc, 1000);
+      return () => clearInterval(id);
+    }
+  }, [from, to]);
 
   return <span className={`font-mono text-xs font-bold ${className}`}>{elapsed}</span>;
 }
@@ -599,7 +602,7 @@ export default function Dashboard() {
                                 <p className="text-xs text-gray-400 font-semibold mb-0.5">
                                   {t.status === 'resolved' ? 'Resolved duration' : 'Pending duration'}
                                 </p>
-                                <LiveTimer from={t.created_at} />
+                                <LiveTimer from={t.created_at} to={t.status === 'resolved' ? t.resolved_at || undefined : undefined} />
                               </div>
                               
                               {t.status !== 'resolved' && (
