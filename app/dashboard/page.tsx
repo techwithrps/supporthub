@@ -1225,7 +1225,7 @@ export default function Dashboard() {
               </div>
             ) : (
               myTickets.map((t) => (
-                <TicketCard key={t.id} ticket={t} statusBadge={statusBadge} highlight onClick={() => setDetailTicket(t)}>
+                <TicketCard key={t.id} ticket={t} statusBadge={statusBadge} highlight hasExtraActions onClick={() => setDetailTicket(t)}>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-50">
                       <div className="flex-1">
@@ -1602,17 +1602,20 @@ function TicketCard({
   highlight = false,
   children,
   onClick,
+  hasExtraActions = false,
 }: {
   ticket: Ticket;
   statusBadge: (s: TicketStatus) => React.ReactNode;
   highlight?: boolean;
   children?: React.ReactNode;
   onClick?: () => void;
+  hasExtraActions?: boolean;
 }) {
+  const heightClass = hasExtraActions ? 'h-[290px]' : 'h-[235px]';
   return (
     <div 
       onClick={onClick}
-      className={`bg-white rounded-2xl border shadow-sm p-4.5 transition flex flex-col justify-between h-[290px] hover:shadow-md cursor-pointer ${
+      className={`bg-white rounded-2xl border shadow-sm p-4.5 transition flex flex-col justify-between ${heightClass} hover:shadow-md cursor-pointer ${
         t.is_escalated 
           ? 'border-red-300 ring-2 ring-red-100 bg-red-50/20' 
           : highlight 
