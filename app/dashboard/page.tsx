@@ -92,6 +92,7 @@ export default function Dashboard() {
   const [resolveModal, setResolveModal] = useState<Ticket | null>(null);
   const [resolveComment, setResolveComment] = useState('');
   const [sendingNotif, setSendingNotif] = useState(false);
+  const [detailTicket, setDetailTicket] = useState<Ticket | null>(null);
 
   const fetchData = useCallback(async () => {
     const [ticketsRes, enquiriesRes] = await Promise.all([
@@ -596,7 +597,7 @@ export default function Dashboard() {
                     ) : (
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                         {adminFilteredTickets.map((t) => (
-                          <TicketCard key={t.id} ticket={t} statusBadge={statusBadge}>
+                          <TicketCard key={t.id} ticket={t} statusBadge={statusBadge} onClick={() => setDetailTicket(t)}>
                             <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-50">
                               <div className="flex-1">
                                 <p className="text-xs text-gray-400 font-semibold mb-0.5">
@@ -857,7 +858,7 @@ export default function Dashboard() {
                 <div>
                   <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Active Assigned Task</h3>
                   {selectedEmpActive ? (
-                    <TicketCard ticket={selectedEmpActive} statusBadge={statusBadge} highlight>
+                    <TicketCard ticket={selectedEmpActive} statusBadge={statusBadge} highlight onClick={() => setDetailTicket(selectedEmpActive)}>
                       <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
                         <div>
                           <p className="text-xs text-gray-400 font-semibold mb-0.5">Solving duration</p>
@@ -880,9 +881,9 @@ export default function Dashboard() {
                       <p className="text-gray-400 text-sm font-medium">No resolved history yet.</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                       {selectedEmpResolved.map((t) => (
-                        <TicketCard key={t.id} ticket={t} statusBadge={statusBadge}>
+                        <TicketCard key={t.id} ticket={t} statusBadge={statusBadge} onClick={() => setDetailTicket(t)}>
                           <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
                             <div>
                               <p className="text-xs text-gray-400 font-semibold">Total time to resolve</p>
@@ -1112,21 +1113,21 @@ export default function Dashboard() {
 
         {/* QUEUE TAB */}
         {activeTab === 'queue' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {pendingTickets.length === 0 ? (
               <div className="col-span-full">
                 <EmptyState message="No pending tickets in queue 🎉" />
               </div>
             ) : (
               pendingTickets.map((t) => (
-                <TicketCard key={t.id} ticket={t} statusBadge={statusBadge}>
+                <TicketCard key={t.id} ticket={t} statusBadge={statusBadge} onClick={() => setDetailTicket(t)}>
                   <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-50">
                     <div className="flex-1">
                       <p className="text-xs text-gray-400">Waiting since</p>
                       <LiveTimer from={t.created_at} />
                     </div>
                     <button
-                      onClick={() => claimTicket(t.id)}
+                      onClick={(e) => { e.stopPropagation(); claimTicket(t.id); }}
                       className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition"
                     >
                       Claim Task
@@ -1140,21 +1141,21 @@ export default function Dashboard() {
 
         {/* MY TASKS TAB */}
         {activeTab === 'mine' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {myTickets.length === 0 ? (
               <div className="col-span-full">
                 <EmptyState message="No active tasks. Go to Queue to claim one." />
               </div>
             ) : (
               myTickets.map((t) => (
-                <TicketCard key={t.id} ticket={t} statusBadge={statusBadge} highlight>
+                <TicketCard key={t.id} ticket={t} statusBadge={statusBadge} highlight onClick={() => setDetailTicket(t)}>
                   <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-50">
                     <div className="flex-1">
                       <p className="text-xs text-gray-400">Working for</p>
                       <LiveTimer from={t.assigned_at!} />
                     </div>
                     <button
-                      onClick={() => openResolveModal(t)}
+                      onClick={(e) => { e.stopPropagation(); openResolveModal(t); }}
                       className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2"
                     >
                       ✓ Mark Resolved
@@ -1168,14 +1169,14 @@ export default function Dashboard() {
 
         {/* RESOLVED TAB */}
         {activeTab === 'resolved' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {resolvedTickets.length === 0 ? (
               <div className="col-span-full">
                 <EmptyState message="No resolved tickets yet." />
               </div>
             ) : (
               resolvedTickets.map((t) => (
-                <TicketCard key={t.id} ticket={t} statusBadge={statusBadge}>
+                <TicketCard key={t.id} ticket={t} statusBadge={statusBadge} onClick={() => setDetailTicket(t)}>
                   <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
                     <div>
                       <p className="text-xs text-gray-400">Resolution time</p>
@@ -1283,6 +1284,98 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* TICKET DETAILS MODAL */}
+      {detailTicket && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg p-6 max-h-[85vh] overflow-y-auto relative border border-gray-100 flex flex-col justify-between">
+            <div>
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
+                <div>
+                  <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider mb-2 inline-block">
+                    📁 {detailTicket.issue_type}
+                  </span>
+                  <h2 className="text-xl font-bold text-gray-900 leading-tight">
+                    {detailTicket.customer_name}
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Submitted: {new Date(detailTicket.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                <div className="shrink-0">{statusBadge(detailTicket.status)}</div>
+              </div>
+
+              {/* Contact Information Cards */}
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100/50">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase">Tally Serial / Email</p>
+                  <p className="text-sm font-semibold text-gray-800 mt-0.5 break-all select-all">
+                    {detailTicket.tally_serial}
+                  </p>
+                  {detailTicket.email && (
+                    <p className="text-xs text-gray-500 mt-0.5 break-all select-all">
+                      {detailTicket.email}
+                    </p>
+                  )}
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100/50">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase">Mobile Number</p>
+                  <a href={`tel:${detailTicket.mobile}`} className="text-sm font-semibold text-emerald-600 hover:underline mt-0.5 block select-all">
+                    📞 {detailTicket.mobile}
+                  </a>
+                </div>
+              </div>
+
+              {/* Description Body */}
+              <div className="mb-5">
+                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5">Issue Description</label>
+                <div className="bg-gray-50 rounded-2xl p-4 text-gray-700 text-sm leading-relaxed border border-gray-100 select-text whitespace-pre-wrap">
+                  {detailTicket.description}
+                </div>
+              </div>
+
+              {/* Assignee / Resolution Details */}
+              {detailTicket.status === 'resolved' && detailTicket.feedback && (
+                <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 mb-5 space-y-3">
+                  <div>
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase">Client Feedback Rating</p>
+                    <p className="text-yellow-500 text-lg mt-0.5">
+                      {'⭐'.repeat(detailTicket.feedback.rating || 0)}
+                    </p>
+                  </div>
+                  {detailTicket.feedback.resolution_notes && (
+                    <div>
+                      <p className="text-[10px] font-bold text-emerald-600 uppercase">Employee Resolution Note</p>
+                      <p className="text-sm text-gray-700 mt-0.5">
+                        {detailTicket.feedback.resolution_notes}
+                      </p>
+                    </div>
+                  )}
+                  {detailTicket.feedback.comments && (
+                    <div>
+                      <p className="text-[10px] font-bold text-emerald-600 uppercase">Client Review Comments</p>
+                      <p className="text-sm text-gray-600 italic mt-0.5">
+                        "{detailTicket.feedback.comments}"
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="mt-4 pt-4 border-t border-gray-100 flex gap-3">
+              <button
+                onClick={() => setDetailTicket(null)}
+                className="flex-1 bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-xl font-semibold transition"
+              >
+                Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1292,14 +1385,19 @@ function TicketCard({
   statusBadge,
   highlight = false,
   children,
+  onClick,
 }: {
   ticket: Ticket;
   statusBadge: (s: TicketStatus) => React.ReactNode;
   highlight?: boolean;
   children?: React.ReactNode;
+  onClick?: () => void;
 }) {
   return (
-    <div className={`bg-white rounded-2xl border shadow-sm p-4.5 transition flex flex-col justify-between h-[255px] ${highlight ? 'border-blue-200 ring-1 ring-blue-100' : 'border-gray-100'}`}>
+    <div 
+      onClick={onClick}
+      className={`bg-white rounded-2xl border shadow-sm p-4.5 transition flex flex-col justify-between h-[255px] hover:shadow-md hover:border-blue-200 cursor-pointer ${highlight ? 'border-blue-200 ring-1 ring-blue-100' : 'border-gray-100'}`}
+    >
       <div>
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1 min-w-0">
