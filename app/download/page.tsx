@@ -18,10 +18,12 @@ export default function DownloadPage() {
             </div>
           </div>
           <a
-            href="/"
+            href="https://www.suyog.net"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-xs font-semibold text-slate-600 hover:text-emerald-600 border border-slate-200 hover:border-emerald-500/30 px-3.5 py-1.5 rounded-lg transition-all"
           >
-            Go to Web Portal →
+            Go to Website →
           </a>
         </div>
       </header>
