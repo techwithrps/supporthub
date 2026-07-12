@@ -1315,7 +1315,7 @@ function TicketCard({
         </div>
 
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider truncate max-w-[120px]">
+          <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider whitespace-nowrap">
             📁 {t.issue_type}
           </span>
           <span className="text-[10px] text-gray-400">
