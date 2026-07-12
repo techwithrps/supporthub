@@ -557,9 +557,9 @@ export default function Dashboard() {
         </header>
 
         {/* CONTAINER */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-grow flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
           {/* SIDEBAR: NAVIGATION & ROSTER */}
-          <aside className="w-80 bg-[#0F172A] text-slate-300 flex flex-col z-10 shadow-lg">
+          <aside className="w-full lg:w-80 bg-[#0F172A] text-slate-300 flex flex-col z-10 shadow-lg shrink-0">
             {/* Primary Sections */}
             <div className="p-4 space-y-1 border-b border-slate-800">
               <button
@@ -658,7 +658,7 @@ export default function Dashboard() {
           </aside>
 
           {/* MAIN CONSOLE AREA */}
-          <main className="flex-1 overflow-y-auto p-8">
+          <main className="flex-1 overflow-y-auto p-4 md:p-8">
             {/* 1. OVERVIEW & QUEUE */}
             {adminSection === 'overview' && !selectedEmployeeId && (
               <div className="space-y-6">
@@ -1272,7 +1272,7 @@ export default function Dashboard() {
         </div>
 
         {/* TABS */}
-        <div className="flex gap-2 mb-6 bg-white border border-gray-100 rounded-xl p-1.5 w-fit shadow-sm">
+        <div className="flex flex-wrap md:flex-nowrap gap-2 mb-6 bg-white border border-gray-100 rounded-xl p-1.5 w-full md:w-fit shadow-sm">
           {[
             { key: 'queue', label: `📋 Queue (${pendingTickets.length})` },
             { key: 'mine', label: `🛠️ My Tasks (${myTickets.length})` },
