@@ -170,8 +170,8 @@ export default function IosAppPortal() {
   }, [savedTicketIds, currentScreen]);
 
   // Input Validation on Blur for tickets
-  const handleSerialOrEmailBlur = () => {
-    const input = querySerialOrEmail.trim();
+  const handleSerialOrEmailBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const input = e.target.value.trim();
     if (!input) {
       setFormErrors((prev) => ({ ...prev, querySerialOrEmail: '' }));
       return;
