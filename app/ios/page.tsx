@@ -132,6 +132,27 @@ export default function IosAppPortal() {
     }
   }, []);
 
+  // Pre-fill contact details on screen navigation
+  useEffect(() => {
+    if (currentScreen === 'raise_query_form') {
+      const lastContact = localStorage.getItem('suyog_last_contact_details');
+      if (lastContact) {
+        try {
+          const details = JSON.parse(lastContact);
+          if (details) {
+            if (!queryName) setQueryName(details.name || '');
+            if (!querySerialOrEmail) setQuerySerialOrEmail(details.serialOrEmail || '');
+            if (!queryMobile) setQueryMobile(details.mobile || '');
+          }
+        } catch (e) {
+          console.error('Error parsing cached contact details', e);
+        }
+      }
+      setQueryType('Select your query type');
+      setQueryDesc('');
+    }
+  }, [currentScreen]);
+
   // Fetch ticket status updates
   const fetchTicketHistory = async () => {
     if (savedTicketIds.length === 0) {
@@ -258,6 +279,14 @@ export default function IosAppPortal() {
       if (data?.id) {
         const updatedIds = [...savedTicketIds, data.id];
         localStorage.setItem('suyog_ticket_ids', JSON.stringify(updatedIds));
+        
+        // Save contact details for auto-fill on next launch
+        localStorage.setItem('suyog_last_contact_details', JSON.stringify({
+          name: queryName,
+          serialOrEmail: input,
+          mobile: queryMobile,
+        }));
+        
         setSavedTicketIds(updatedIds);
 
         setQueryName('');
