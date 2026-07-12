@@ -26,6 +26,18 @@ interface Ticket {
   transfer_reason?: string | null;
 }
 
+interface Enquiry {
+  id: string;
+  name: string;
+  phone: string;
+  details: string;
+  created_at: string;
+  claimed_by: string | null;
+  status: 'pending' | 'in_progress' | 'converted' | 'not_converted';
+  conversion_notes: string | null;
+  claimed_at: string | null;
+}
+
 interface Profile {
   id: string;
   full_name: string;
@@ -63,7 +75,7 @@ export default function Dashboard() {
   const [user, setUser] = useState<{ id: string; email: string; full_name: string } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [enquiries, setEnquiries] = useState<any[]>([]);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [employees, setEmployees] = useState<Profile[]>([]);
   
   // Admin navigation state: 'overview' | 'employee_detail' | 'enquiries' | 'manage_employees' | 'employee_pulse_list'
@@ -106,6 +118,12 @@ export default function Dashboard() {
   const [escalateModal, setEscalateModal] = useState<Ticket | null>(null);
   const [escalateReason, setEscalateReason] = useState('');
   const [escalating, setEscalating] = useState(false);
+
+  // CRM Enquiry states
+  const [editingEnquiryId, setEditingEnquiryId] = useState<string | null>(null);
+  const [crmNotes, setCrmNotes] = useState('');
+  const [crmStatus, setCrmStatus] = useState<'pending' | 'in_progress' | 'converted' | 'not_converted'>('converted');
+  const [updatingCrm, setUpdatingCrm] = useState(false);
 
   const fetchData = useCallback(async () => {
     const [ticketsRes, enquiriesRes] = await Promise.all([
@@ -258,6 +276,50 @@ export default function Dashboard() {
       alert('Failed to escalate task: ' + err.message);
     } finally {
       setEscalating(false);
+    }
+  };
+
+  const claimEnquiry = async (enquiryId: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('enquiries')
+        .update({
+          claimed_by: user.id,
+          claimed_at: new Date().toISOString(),
+          status: 'in_progress',
+        })
+        .eq('id', enquiryId);
+
+      if (error) throw error;
+      alert('Lead claimed! You can now update its status and add conversation notes.');
+      fetchData();
+    } catch (err: any) {
+      console.error('Error claiming enquiry:', err);
+      alert('Failed to claim lead: ' + err.message);
+    }
+  };
+
+  const updateEnquiryLead = async (enquiryId: string) => {
+    setUpdatingCrm(true);
+    try {
+      const { error } = await supabase
+        .from('enquiries')
+        .update({
+          status: crmStatus,
+          conversion_notes: crmNotes.trim(),
+        })
+        .eq('id', enquiryId);
+
+      if (error) throw error;
+      alert('Lead status updated successfully!');
+      setEditingEnquiryId(null);
+      fetchData();
+    } catch (err: any) {
+      console.error('Error updating enquiry status:', err);
+      alert('Failed to update lead: ' + err.message);
+    } finally {
+      setUpdatingCrm(false);
     }
   };
 
@@ -769,31 +831,74 @@ export default function Dashboard() {
             {adminSection === 'enquiries' && (
               <div className="space-y-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-1">New Callback Enquiries</h2>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   {enquiries.length === 0 ? (
-                    <EmptyState message="No call enquiries registered yet." />
+                    <div className="col-span-full">
+                      <EmptyState message="No call enquiries registered yet." />
+                    </div>
                   ) : (
-                    enquiries.map((e) => (
-                      <div key={e.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                        <div className="flex justify-between items-start mb-3">
+                    enquiries.map((e) => {
+                      const claimant = employees.find(emp => emp.id === e.claimed_by);
+                      const claimantName = claimant ? claimant.full_name : 'Unknown';
+
+                      const leadStatusColors = {
+                        pending: 'bg-gray-100 text-gray-700 border-gray-200',
+                        in_progress: 'bg-blue-50 text-blue-700 border-blue-100',
+                        converted: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                        not_converted: 'bg-red-50 text-red-700 border-red-100',
+                      };
+
+                      const leadStatusLabels = {
+                        pending: 'Pending',
+                        in_progress: 'In Progress',
+                        converted: 'Converted Deal',
+                        not_converted: 'Not Converted',
+                      };
+
+                      return (
+                        <div key={e.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col justify-between min-h-[220px]">
                           <div>
-                            <p className="text-lg font-bold text-gray-900">{e.name}</p>
-                            <a href={`tel:${e.phone}`} className="text-emerald-600 font-semibold text-sm hover:underline mt-1 block">
-                              📞 {e.phone}
-                            </a>
+                            <div className="flex justify-between items-start mb-3 gap-2">
+                              <div>
+                                <p className="text-base font-bold text-gray-900">{e.name}</p>
+                                <a href={`tel:${e.phone}`} className="text-emerald-600 font-semibold text-xs hover:underline mt-1 block">
+                                  📞 {e.phone}
+                                </a>
+                              </div>
+                              <div className="flex flex-col items-end gap-1.5">
+                                <span className={`text-[9px] px-2 py-0.5 rounded-full border font-bold uppercase tracking-wider ${leadStatusColors[e.status || 'pending']}`}>
+                                  {leadStatusLabels[e.status || 'pending']}
+                                </span>
+                                <span className="text-[10px] text-gray-400">
+                                  {new Date(e.created_at).toLocaleDateString('en-IN', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-gray-700 text-xs bg-gray-50 p-3 rounded-xl border border-gray-100 mb-3">{e.details}</p>
                           </div>
-                          <span className="text-xs text-gray-400 font-medium">
-                            {new Date(e.created_at).toLocaleDateString('en-IN', {
-                              day: '2-digit',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
+
+                          <div className="pt-3 border-t border-gray-100 mt-3 text-xs space-y-2">
+                            <div className="flex items-center justify-between text-gray-500">
+                              <span>Lead Owner:</span>
+                              <span className="font-semibold text-gray-800">
+                                {e.claimed_by ? `💼 ${claimantName}` : '🔴 Unclaimed Lead'}
+                              </span>
+                            </div>
+                            {e.conversion_notes && (
+                              <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-[11px] text-slate-700">
+                                <p className="font-bold text-[8px] text-slate-400 uppercase mb-0.5">Agent Logs & Comments</p>
+                                <p className="italic">"{e.conversion_notes}"</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-gray-700 text-sm bg-gray-50 p-4 rounded-xl border border-gray-100">{e.details}</p>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -1301,29 +1406,142 @@ export default function Dashboard() {
 
         {/* ENQUIRIES TAB */}
         {activeTab === 'enquiries' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {enquiries.length === 0 ? (
               <div className="col-span-full">
                 <EmptyState message="No new enquiries yet." />
               </div>
             ) : (
-              enquiries.map((e) => (
-                <div key={e.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                  <div className="flex items-center justify-between mb-3">
+              enquiries.map((e) => {
+                const claimant = employees.find(emp => emp.id === e.claimed_by);
+                const claimantName = claimant ? claimant.full_name : 'Other Employee';
+                const isClaimedByMe = e.claimed_by === user?.id;
+
+                const leadStatusColors = {
+                  pending: 'bg-gray-100 text-gray-700 border-gray-200',
+                  in_progress: 'bg-blue-50 text-blue-700 border-blue-100',
+                  converted: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                  not_converted: 'bg-red-50 text-red-700 border-red-100',
+                };
+
+                const leadStatusLabels = {
+                  pending: 'Pending',
+                  in_progress: 'In Progress',
+                  converted: 'Converted Deal',
+                  not_converted: 'Not Converted',
+                };
+
+                return (
+                  <div key={e.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col justify-between min-h-[220px]">
                     <div>
-                      <p className="text-lg font-bold text-gray-900">{e.name}</p>
-                      <a
-                        href={`tel:${e.phone}`}
-                        className="text-emerald-600 font-semibold text-sm hover:underline"
-                      >
-                        📞 {e.phone}
-                      </a>
+                      {/* Card Header */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-gray-900 truncate" title={e.name}>{e.name}</p>
+                          <a
+                            href={`tel:${e.phone}`}
+                            className="text-emerald-600 font-semibold text-xs hover:underline mt-0.5 block"
+                          >
+                            📞 {e.phone}
+                          </a>
+                        </div>
+                        <span className={`text-[9px] px-2 py-0.5 rounded-full border font-bold uppercase tracking-wider ${leadStatusColors[e.status || 'pending']}`}>
+                          {leadStatusLabels[e.status || 'pending']}
+                        </span>
+                      </div>
+
+                      {/* Date */}
+                      <p className="text-[10px] text-gray-400 mb-2">
+                        Received: {new Date(e.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+
+                      {/* Details Text */}
+                      <p className="text-gray-600 text-xs bg-gray-50 p-2.5 rounded-xl border border-gray-100/50 mb-3">{e.details}</p>
+
+                      {/* Conversion Notes Display */}
+                      {e.conversion_notes && (
+                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 mb-3 text-[11px] text-slate-700">
+                          <p className="font-bold text-[9px] text-slate-400 uppercase mb-0.5">Conversation Notes</p>
+                          <p className="italic">"{e.conversion_notes}"</p>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-400">{new Date(e.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+
+                    {/* Actions and Assignment Info */}
+                    <div className="pt-3 border-t border-gray-50 mt-auto">
+                      {!e.claimed_by ? (
+                        <button
+                          onClick={() => claimEnquiry(e.id)}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl text-xs font-bold transition"
+                        >
+                          💼 Claim Lead
+                        </button>
+                      ) : isClaimedByMe ? (
+                        <div>
+                          <p className="text-[10px] text-emerald-600 font-bold mb-2 flex items-center gap-1">
+                            ✅ Claimed by: You
+                          </p>
+                          {editingEnquiryId !== e.id ? (
+                            <button
+                              onClick={() => {
+                                setEditingEnquiryId(e.id);
+                                setCrmNotes(e.conversion_notes || '');
+                                setCrmStatus(e.status === 'pending' || e.status === 'in_progress' ? 'converted' : e.status);
+                              }}
+                              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-xl text-xs font-bold transition"
+                            >
+                              📝 Update Status / Notes
+                            </button>
+                          ) : (
+                            <div className="space-y-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                              <div>
+                                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1">Status</label>
+                                <select
+                                  value={crmStatus}
+                                  onChange={(ev) => setCrmStatus(ev.target.value as any)}
+                                  className="w-full text-xs border border-gray-200 rounded-lg p-1.5 bg-white text-gray-900"
+                                >
+                                  <option value="converted">🎉 Converted (Deal Done)</option>
+                                  <option value="not_converted">❌ Not Converted / Junk</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1">Conversation Note</label>
+                                <textarea
+                                  value={crmNotes}
+                                  onChange={(ev) => setCrmNotes(ev.target.value)}
+                                  placeholder="Type details of your call..."
+                                  rows={2}
+                                  className="w-full text-xs border border-gray-200 rounded-lg p-1.5 bg-white text-gray-900"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setEditingEnquiryId(null)}
+                                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-1 rounded-lg text-xs font-semibold"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => updateEnquiryLead(e.id)}
+                                  disabled={updatingCrm}
+                                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white py-1 rounded-lg text-xs font-semibold"
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-gray-400 italic">
+                          💼 Handled by: {claimantName}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded-xl">{e.details}</p>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}
