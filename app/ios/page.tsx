@@ -73,11 +73,10 @@ export default function IosAppPortal() {
   const [isIosMobile, setIsIosMobile] = useState(false);
 
   const issueTypes = [
-    'Select your query type',
-    'Tally Prime',
-    'Tally ERP 9',
-    'License Activation',
-    'Data Recovery',
+    'Tally Related Issue',
+    'Cloud Related Issue',
+    'TSS Renewal',
+    'Tally Customization',
     'Others',
   ];
 
@@ -543,7 +542,7 @@ export default function IosAppPortal() {
 
                     {showDropdown && (
                       <div className="absolute left-0 right-0 z-20 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                        {issueTypes.filter(t => t !== 'Select your query type').map((type) => (
+                        {issueTypes.map((type) => (
                           <button
                             type="button"
                             key={type}
