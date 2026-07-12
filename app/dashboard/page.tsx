@@ -21,6 +21,9 @@ interface Ticket {
   push_token: string | null;
   created_at: string;
   feedback: { rating: number | null; comments: string | null; resolution_notes?: string | null } | null;
+  is_escalated?: boolean;
+  escalation_reason?: string | null;
+  transfer_reason?: string | null;
 }
 
 interface Profile {
@@ -93,6 +96,16 @@ export default function Dashboard() {
   const [resolveComment, setResolveComment] = useState('');
   const [sendingNotif, setSendingNotif] = useState(false);
   const [detailTicket, setDetailTicket] = useState<Ticket | null>(null);
+
+  // Transfer and Escalation states
+  const [transferModal, setTransferModal] = useState<Ticket | null>(null);
+  const [transferReason, setTransferReason] = useState('');
+  const [transferTargetEmployeeId, setTransferTargetEmployeeId] = useState('');
+  const [transferring, setTransferring] = useState(false);
+
+  const [escalateModal, setEscalateModal] = useState<Ticket | null>(null);
+  const [escalateReason, setEscalateReason] = useState('');
+  const [escalating, setEscalating] = useState(false);
 
   const fetchData = useCallback(async () => {
     const [ticketsRes, enquiriesRes] = await Promise.all([
@@ -170,6 +183,7 @@ export default function Dashboard() {
       status: 'assigned',
       assigned_to: user.id,
       assigned_at: new Date().toISOString(),
+      is_escalated: false,
     }).eq('id', ticketId);
     fetchData();
   };
@@ -179,9 +193,72 @@ export default function Dashboard() {
       status: 'assigned',
       assigned_to: empId,
       assigned_at: new Date().toISOString(),
+      is_escalated: false,
     }).eq('id', ticketId);
     setAssigningTicket(null);
     fetchData();
+  };
+
+  const handleTransfer = async () => {
+    if (!transferModal || !transferTargetEmployeeId || !transferReason.trim()) {
+      alert('Please select an employee and enter a reason.');
+      return;
+    }
+    setTransferring(true);
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .update({
+          assigned_to: transferTargetEmployeeId,
+          transfer_reason: transferReason.trim(),
+          assigned_at: new Date().toISOString(),
+        })
+        .eq('id', transferModal.id);
+
+      if (error) throw error;
+
+      alert('Task transferred successfully!');
+      setTransferModal(null);
+      setTransferReason('');
+      setTransferTargetEmployeeId('');
+      fetchData();
+    } catch (err: any) {
+      console.error('Error transferring ticket:', err);
+      alert('Failed to transfer task: ' + err.message);
+    } finally {
+      setTransferring(false);
+    }
+  };
+
+  const handleEscalate = async () => {
+    if (!escalateModal || !escalateReason.trim()) {
+      alert('Please enter a reason for escalation.');
+      return;
+    }
+    setEscalating(true);
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .update({
+          assigned_to: null,
+          status: 'pending',
+          is_escalated: true,
+          escalation_reason: escalateReason.trim(),
+        })
+        .eq('id', escalateModal.id);
+
+      if (error) throw error;
+
+      alert('Task escalated successfully! It has been returned to the public queue.');
+      setEscalateModal(null);
+      setEscalateReason('');
+      fetchData();
+    } catch (err: any) {
+      console.error('Error escalating ticket:', err);
+      alert('Failed to escalate task: ' + err.message);
+    } finally {
+      setEscalating(false);
+    }
   };
 
   const openResolveModal = (ticket: Ticket) => {
@@ -1149,17 +1226,34 @@ export default function Dashboard() {
             ) : (
               myTickets.map((t) => (
                 <TicketCard key={t.id} ticket={t} statusBadge={statusBadge} highlight onClick={() => setDetailTicket(t)}>
-                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-50">
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-400">Working for</p>
-                      <LiveTimer from={t.assigned_at!} />
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-50">
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-400">Working for</p>
+                        <LiveTimer from={t.assigned_at!} />
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openResolveModal(t); }}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2"
+                      >
+                        ✓ Mark Resolved
+                      </button>
                     </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openResolveModal(t); }}
-                      className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2"
-                    >
-                      ✓ Mark Resolved
-                    </button>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 text-xs">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setTransferModal(t); setTransferReason(''); setTransferTargetEmployeeId(''); }}
+                        className="text-amber-600 hover:text-amber-700 font-bold hover:underline transition"
+                      >
+                        🔄 Handover / Transfer
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setEscalateModal(t); setEscalateReason(''); }}
+                        className="text-red-600 hover:text-red-700 font-bold hover:underline transition"
+                      >
+                        🚨 Escalate to Senior
+                      </button>
+                    </div>
                   </div>
                 </TicketCard>
               ))
@@ -1335,6 +1429,22 @@ export default function Dashboard() {
                 </div>
               </div>
 
+              {/* Escalation details */}
+              {detailTicket.is_escalated && detailTicket.escalation_reason && (
+                <div className="bg-red-50 border border-red-100 rounded-xl p-3.5 mb-5 text-sm text-red-700">
+                  <p className="text-[9px] font-bold text-red-500 uppercase tracking-wider mb-1">🚨 Escalation Reason</p>
+                  <p className="font-semibold">{detailTicket.escalation_reason}</p>
+                </div>
+              )}
+
+              {/* Transfer details */}
+              {detailTicket.transfer_reason && (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3.5 mb-5 text-sm text-amber-800">
+                  <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-1">🔄 Handover / Transfer Reason</p>
+                  <p className="font-semibold">{detailTicket.transfer_reason}</p>
+                </div>
+              )}
+
               {/* Assignee / Resolution Details */}
               {detailTicket.status === 'resolved' && detailTicket.feedback && (
                 <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 mb-5 space-y-3">
@@ -1376,6 +1486,112 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* HANDOVER / TRANSFER MODAL */}
+      {transferModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-6 border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Handover Task</h2>
+            <p className="text-gray-500 text-sm mb-5">
+              Transferring query: <span className="font-semibold text-gray-800">"{transferModal.customer_name}"</span>
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Select Employee</label>
+              <select
+                value={transferTargetEmployeeId}
+                onChange={(e) => setTransferTargetEmployeeId(e.target.value)}
+                className="w-full text-sm text-gray-900 border border-gray-200 rounded-xl p-3 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
+              >
+                <option value="">-- Choose employee from list --</option>
+                {employees
+                  .filter((emp) => emp.id !== user?.id)
+                  .map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.full_name} ({emp.email || 'No email'})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Reason for Handover</label>
+              <textarea
+                value={transferReason}
+                onChange={(e) => setTransferReason(e.target.value)}
+                placeholder="Explain why this task is being handed over..."
+                rows={3}
+                className="w-full text-sm text-gray-900 border border-gray-200 rounded-xl p-3 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setTransferModal(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleTransfer}
+                disabled={transferring}
+                className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2"
+              >
+                {transferring ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Processing...
+                  </>
+                ) : 'Confirm Handover'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ESCALATION MODAL */}
+      {escalateModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-6 border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 mb-1 text-red-600">Escalate Task</h2>
+            <p className="text-gray-500 text-sm mb-5">
+              Escalating query: <span className="font-semibold text-gray-800">"{escalateModal.customer_name}"</span>
+            </p>
+
+            <div className="mb-5">
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Reason for Escalation (requires senior attention)</label>
+              <textarea
+                value={escalateReason}
+                onChange={(e) => setEscalateReason(e.target.value)}
+                placeholder="Specify the technical challenges or senior assistance required..."
+                rows={3}
+                className="w-full text-sm text-gray-900 border border-gray-200 rounded-xl p-3 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 transition"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setEscalateModal(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEscalate}
+                disabled={escalating}
+                className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2"
+              >
+                {escalating ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Escalating...
+                  </>
+                ) : '🚨 Escalate Now'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1396,14 +1612,27 @@ function TicketCard({
   return (
     <div 
       onClick={onClick}
-      className={`bg-white rounded-2xl border shadow-sm p-4.5 transition flex flex-col justify-between h-[255px] hover:shadow-md hover:border-blue-200 cursor-pointer ${highlight ? 'border-blue-200 ring-1 ring-blue-100' : 'border-gray-100'}`}
+      className={`bg-white rounded-2xl border shadow-sm p-4.5 transition flex flex-col justify-between h-[290px] hover:shadow-md cursor-pointer ${
+        t.is_escalated 
+          ? 'border-red-300 ring-2 ring-red-100 bg-red-50/20' 
+          : highlight 
+            ? 'border-blue-200 ring-1 ring-blue-100 hover:border-blue-300' 
+            : 'border-gray-100 hover:border-blue-200'
+      }`}
     >
       <div>
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-gray-900 truncate" title={t.customer_name}>
-              {t.customer_name}
-            </p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-sm font-bold text-gray-900 truncate max-w-[120px]" title={t.customer_name}>
+                {t.customer_name}
+              </p>
+              {t.is_escalated && (
+                <span className="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded font-extrabold uppercase animate-pulse leading-none shrink-0">
+                  🚨 Escalated
+                </span>
+              )}
+            </div>
             <p className="text-[10px] text-gray-400 mt-0.5 truncate" title={`Serial: ${t.tally_serial} | ${t.email}`}>
               SN: {t.tally_serial} | {t.email}
             </p>
