@@ -179,13 +179,13 @@ export default function IosAppPortal() {
 
     if (input.includes('@')) {
       if (!validateEmail(input)) {
-        setFormErrors((prev) => ({ ...prev, querySerialOrEmail: 'Invalid Email ID format' }));
+        setFormErrors((prev) => ({ ...prev, querySerialOrEmail: 'Invalid Tally Net Email_id' }));
       } else {
         setFormErrors((prev) => ({ ...prev, querySerialOrEmail: '' }));
       }
     } else {
       if (!validateTallySerial(input)) {
-        setFormErrors((prev) => ({ ...prev, querySerialOrEmail: 'Invalid Tally Serial No. or Tally Net Email_id' }));
+        setFormErrors((prev) => ({ ...prev, querySerialOrEmail: 'Invalid Tally Serial No. (must be exactly 9 digits)' }));
       } else {
         setFormErrors((prev) => ({ ...prev, querySerialOrEmail: '' }));
       }
@@ -220,11 +220,11 @@ export default function IosAppPortal() {
       errors.querySerialOrEmail = 'Tally Serial or Tally Net Email_id is required';
     } else if (input.includes('@')) {
       if (!validateEmail(input)) {
-        errors.querySerialOrEmail = 'Invalid Tally Serial No. or Tally Net Email_id';
+        errors.querySerialOrEmail = 'Invalid Tally Net Email_id';
       }
     } else {
       if (!validateTallySerial(input)) {
-        errors.querySerialOrEmail = 'Invalid Tally Serial No. or Tally Net Email_id';
+        errors.querySerialOrEmail = 'Invalid Tally Serial No. (must be exactly 9 digits)';
       }
     }
 
@@ -498,7 +498,17 @@ export default function IosAppPortal() {
                       type="text"
                       placeholder="9-digit serial or Tally Net Email_id"
                       value={querySerialOrEmail}
-                      onChange={(e) => setQuerySerialOrEmail(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        let clean = val;
+                        if (/^\d+$/.test(val)) {
+                          clean = val.slice(0, 9);
+                        }
+                        setQuerySerialOrEmail(clean);
+                        if (formErrors.querySerialOrEmail) {
+                          setFormErrors((prev) => ({ ...prev, querySerialOrEmail: '' }));
+                        }
+                      }}
                       onBlur={handleSerialOrEmailBlur}
                       className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
                         formErrors.querySerialOrEmail ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-[#0F172A] placeholder-slate-300'
