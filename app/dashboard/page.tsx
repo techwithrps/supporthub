@@ -347,7 +347,7 @@ export default function Dashboard() {
 
   const pendingTickets = tickets.filter(t => t.status === 'pending');
   const myTickets = tickets.filter(t => t.assigned_to === user?.id && t.status === 'assigned');
-  const resolvedTickets = tickets.filter(t => t.status === 'resolved');
+  const resolvedTickets = tickets.filter(t => t.status === 'resolved' && (isAdmin ? true : t.assigned_to === user?.id));
 
   // Compute analytics metrics
   const getCSATAverage = () => {
