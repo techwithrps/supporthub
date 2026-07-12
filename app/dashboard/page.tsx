@@ -24,6 +24,7 @@ interface Ticket {
   is_escalated?: boolean;
   escalation_reason?: string | null;
   transfer_reason?: string | null;
+  escalated_by?: string | null;
 }
 
 interface Enquiry {
@@ -202,6 +203,7 @@ export default function Dashboard() {
       assigned_to: user.id,
       assigned_at: new Date().toISOString(),
       is_escalated: false,
+      escalated_by: null,
     }).eq('id', ticketId);
     fetchData();
   };
@@ -212,6 +214,7 @@ export default function Dashboard() {
       assigned_to: empId,
       assigned_at: new Date().toISOString(),
       is_escalated: false,
+      escalated_by: null,
     }).eq('id', ticketId);
     setAssigningTicket(null);
     fetchData();
@@ -262,6 +265,7 @@ export default function Dashboard() {
           status: 'pending',
           is_escalated: true,
           escalation_reason: escalateReason.trim(),
+          escalated_by: user?.id || null,
         })
         .eq('id', escalateModal.id);
 
@@ -407,7 +411,7 @@ export default function Dashboard() {
     return { status: 'Idle', color: 'text-gray-400 bg-gray-50 border-gray-100', activeTicket: null };
   };
 
-  const pendingTickets = tickets.filter(t => t.status === 'pending');
+  const pendingTickets = tickets.filter(t => t.status === 'pending' && (isAdmin ? true : t.escalated_by !== user?.id));
   const myTickets = tickets.filter(t => t.assigned_to === user?.id && t.status === 'assigned');
   const resolvedTickets = tickets.filter(t => t.status === 'resolved' && (isAdmin ? true : t.assigned_to === user?.id));
 
@@ -1723,7 +1727,7 @@ export default function Dashboard() {
               >
                 <option value="">-- Choose employee from list --</option>
                 {employees
-                  .filter((emp) => emp.id !== user?.id)
+                  .filter((emp) => emp.id !== user?.id && emp.email !== 'admin@suyog.net')
                   .map((emp) => (
                     <option key={emp.id} value={emp.id}>
                       {emp.full_name} ({emp.email || 'No email'})
