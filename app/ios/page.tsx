@@ -91,6 +91,13 @@ export default function IosAppPortal() {
   // Load local ticket IDs and setup PWA prompt
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Register PWA service worker for notifications
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+          .then((reg) => console.log('Service Worker registered successfully:', reg))
+          .catch((err) => console.error('Service Worker registration failed:', err));
+      }
+
       // Load stored ticket IDs
       const stored = localStorage.getItem('suyog_ticket_ids');
       if (stored) {
