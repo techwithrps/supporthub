@@ -1299,31 +1299,36 @@ function TicketCard({
   children?: React.ReactNode;
 }) {
   return (
-    <div className={`bg-white rounded-2xl border shadow-sm p-5 transition ${highlight ? 'border-blue-200 ring-1 ring-blue-100' : 'border-gray-100'}`}>
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div>
-          <p className="text-lg font-bold text-gray-900">{t.customer_name}</p>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Serial: {t.tally_serial} &nbsp;|&nbsp; {t.email} &nbsp;|&nbsp; 📞 {t.mobile}
-          </p>
+    <div className={`bg-white rounded-2xl border shadow-sm p-4.5 transition flex flex-col justify-between h-[255px] ${highlight ? 'border-blue-200 ring-1 ring-blue-100' : 'border-gray-100'}`}>
+      <div>
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-gray-900 truncate" title={t.customer_name}>
+              {t.customer_name}
+            </p>
+            <p className="text-[10px] text-gray-400 mt-0.5 truncate" title={`Serial: ${t.tally_serial} | ${t.email}`}>
+              SN: {t.tally_serial} | {t.email}
+            </p>
+            <p className="text-[10px] text-gray-400">📞 {t.mobile}</p>
+          </div>
+          <div className="shrink-0">{statusBadge(t.status)}</div>
         </div>
-        {statusBadge(t.status)}
+
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider truncate max-w-[120px]">
+            📁 {t.issue_type}
+          </span>
+          <span className="text-[10px] text-gray-400">
+            {new Date(t.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
+
+        <p className="text-gray-600 text-xs leading-relaxed bg-gray-50 rounded-xl p-2.5 h-10 line-clamp-2 overflow-hidden" title={t.description}>
+          {t.description}
+        </p>
       </div>
 
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
-          📁 {t.issue_type}
-        </span>
-        <span className="text-xs text-gray-400">
-          {new Date(t.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-        </span>
-      </div>
-
-      <p className="text-gray-700 text-sm leading-relaxed bg-gray-50 rounded-xl p-3">
-        {t.description}
-      </p>
-
-      {children}
+      <div className="shrink-0">{children}</div>
     </div>
   );
 }
