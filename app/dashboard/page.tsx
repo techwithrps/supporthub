@@ -1112,7 +1112,7 @@ export default function Dashboard() {
 
         {/* QUEUE TAB */}
         {activeTab === 'queue' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {pendingTickets.length === 0 ? (
               <div className="col-span-full">
                 <EmptyState message="No pending tickets in queue 🎉" />
@@ -1140,7 +1140,7 @@ export default function Dashboard() {
 
         {/* MY TASKS TAB */}
         {activeTab === 'mine' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {myTickets.length === 0 ? (
               <div className="col-span-full">
                 <EmptyState message="No active tasks. Go to Queue to claim one." />
@@ -1168,7 +1168,7 @@ export default function Dashboard() {
 
         {/* RESOLVED TAB */}
         {activeTab === 'resolved' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {resolvedTickets.length === 0 ? (
               <div className="col-span-full">
                 <EmptyState message="No resolved tickets yet." />
@@ -1206,7 +1206,7 @@ export default function Dashboard() {
 
         {/* ENQUIRIES TAB */}
         {activeTab === 'enquiries' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {enquiries.length === 0 ? (
               <div className="col-span-full">
                 <EmptyState message="No new enquiries yet." />
