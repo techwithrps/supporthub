@@ -3,12 +3,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
-// Tally Serial validation: Must be exactly 9 digits, and the sum of digits must equal 9.
+// Tally Serial validation: Must be exactly 9 digits.
 const validateTallySerial = (serial: string): boolean => {
   const clean = serial.replace(/\s+/g, '');
-  if (!/^\d{9}$/.test(clean)) return false;
-  const sum = clean.split('').reduce((acc, digit) => acc + parseInt(digit, 10), 0);
-  return sum === 9;
+  return /^\d{9}$/.test(clean);
 };
 
 // Email validation
