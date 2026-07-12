@@ -594,7 +594,7 @@ export default function Dashboard() {
                     {adminFilteredTickets.length === 0 ? (
                       <EmptyState message="No tickets match this filter." />
                     ) : (
-                      <div className="space-y-4">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                         {adminFilteredTickets.map((t) => (
                           <TicketCard key={t.id} ticket={t} statusBadge={statusBadge}>
                             <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-50">
@@ -1112,9 +1112,11 @@ export default function Dashboard() {
 
         {/* QUEUE TAB */}
         {activeTab === 'queue' && (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {pendingTickets.length === 0 ? (
-              <EmptyState message="No pending tickets in queue 🎉" />
+              <div className="col-span-full">
+                <EmptyState message="No pending tickets in queue 🎉" />
+              </div>
             ) : (
               pendingTickets.map((t) => (
                 <TicketCard key={t.id} ticket={t} statusBadge={statusBadge}>
@@ -1138,9 +1140,11 @@ export default function Dashboard() {
 
         {/* MY TASKS TAB */}
         {activeTab === 'mine' && (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {myTickets.length === 0 ? (
-              <EmptyState message="No active tasks. Go to Queue to claim one." />
+              <div className="col-span-full">
+                <EmptyState message="No active tasks. Go to Queue to claim one." />
+              </div>
             ) : (
               myTickets.map((t) => (
                 <TicketCard key={t.id} ticket={t} statusBadge={statusBadge} highlight>
@@ -1164,9 +1168,11 @@ export default function Dashboard() {
 
         {/* RESOLVED TAB */}
         {activeTab === 'resolved' && (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {resolvedTickets.length === 0 ? (
-              <EmptyState message="No resolved tickets yet." />
+              <div className="col-span-full">
+                <EmptyState message="No resolved tickets yet." />
+              </div>
             ) : (
               resolvedTickets.map((t) => (
                 <TicketCard key={t.id} ticket={t} statusBadge={statusBadge}>
@@ -1185,7 +1191,7 @@ export default function Dashboard() {
                           <p className="text-[10px] text-gray-400 italic">No client rating yet</p>
                         )}
                         {t.feedback.comments && (
-                          <p className="text-xs text-gray-400 italic mt-0.5 max-w-xs text-right">
+                          <p className="text-xs text-gray-400 italic mt-0.5 max-w-xs text-right truncate">
                             "{t.feedback.comments}"
                           </p>
                         )}
@@ -1200,9 +1206,11 @@ export default function Dashboard() {
 
         {/* ENQUIRIES TAB */}
         {activeTab === 'enquiries' && (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {enquiries.length === 0 ? (
-              <EmptyState message="No new enquiries yet." />
+              <div className="col-span-full">
+                <EmptyState message="No new enquiries yet." />
+              </div>
             ) : (
               enquiries.map((e) => (
                 <div key={e.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
