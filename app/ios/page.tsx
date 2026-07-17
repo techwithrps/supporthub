@@ -48,6 +48,7 @@ export default function IosAppPortal() {
   // Enquiry Form states
   const [enquiryName, setEnquiryName] = useState('');
   const [enquiryPhone, setEnquiryPhone] = useState('');
+  const [enquiryType, setEnquiryType] = useState('');
   const [enquiryDetails, setEnquiryDetails] = useState('');
   
   // Validation / Loading states
@@ -71,10 +72,10 @@ export default function IosAppPortal() {
   const [isIosMobile, setIsIosMobile] = useState(false);
 
   const issueTypes = [
-    'Tally Related Issue',
-    'Cloud Related Issue',
-    'TSS Renewal',
-    'Tally Customization',
+    'New TallyPrime',
+    'Tss Renewal',
+    'Tally on Cloud',
+    'Tally Customisation',
     'Others',
   ];
 
@@ -323,7 +324,10 @@ export default function IosAppPortal() {
     if (!enquiryName.trim()) errors.enquiryName = 'Name is required';
     if (!enquiryPhone.trim() || enquiryPhone.length < 10)
       errors.enquiryPhone = 'Enter a valid 10-digit phone number';
-    if (!enquiryDetails.trim()) errors.enquiryDetails = 'Please share more details';
+    if (!enquiryType)
+      errors.enquiryType = 'Please select an enquiry type';
+    if (enquiryType === 'Others' && !enquiryDetails.trim())
+      errors.enquiryDetails = 'Description details are required for Others option';
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -338,13 +342,15 @@ export default function IosAppPortal() {
         .insert({
           name: enquiryName,
           phone: enquiryPhone,
-          details: enquiryDetails,
+          details: enquiryDetails || 'No details provided',
+          enquiry_type: enquiryType,
         });
 
       if (error) throw error;
 
       setEnquiryName('');
       setEnquiryPhone('');
+      setEnquiryType('');
       setEnquiryDetails('');
       setSubmitSuccess(true);
 
@@ -461,6 +467,19 @@ export default function IosAppPortal() {
                   <span className="text-xs text-[#64748B]">Get product catalog, pricing, demo calls</span>
                 </button>
 
+                {/* View Records Card */}
+                {savedTicketIds.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setCurrentScreen('query_list');
+                      fetchTicketHistory();
+                    }}
+                    className="w-full bg-emerald-50 hover:bg-emerald-100/70 border-1.5 border-emerald-200 rounded-[20px] p-6 text-left shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all hover:scale-[1.01] active:scale-[0.99] flex flex-col"
+                  >
+                    <span className="text-xl font-bold text-emerald-800 mb-1">📋 View Records</span>
+                    <span className="text-xs text-emerald-600">Track your existing tickets & ratings</span>
+                  </button>
+                )}
               </div>
 
               {/* Hub Footer */}
@@ -492,15 +511,17 @@ export default function IosAppPortal() {
                   ← Hub
                 </button>
                 <h2 className="text-lg font-bold text-[#0F172A]">Raise Issue</h2>
-                <button
-                  onClick={() => {
-                    setCurrentScreen('query_list');
-                    fetchTicketHistory();
-                  }}
-                  className="bg-slate-100 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#475569] hover:bg-slate-200 transition"
-                >
-                  View Records
-                </button>
+                {savedTicketIds.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setCurrentScreen('query_list');
+                      fetchTicketHistory();
+                    }}
+                    className="bg-slate-100 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#475569] hover:bg-slate-200 transition"
+                  >
+                    View Records
+                  </button>
+                )}
               </div>
 
               {submitSuccess ? (
@@ -694,9 +715,31 @@ export default function IosAppPortal() {
                     {formErrors.enquiryPhone && <p className="text-[11px] text-red-500 font-bold">{formErrors.enquiryPhone}</p>}
                   </div>
 
+                  {/* Enquiry Type */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-600">Select Enquiry Type</label>
+                    <select
+                      value={enquiryType}
+                      onChange={(e) => setEnquiryType(e.target.value)}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-900/10 ${
+                        formErrors.enquiryType ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-[#F8FAFC] text-[#0F172A]'
+                      }`}
+                    >
+                      <option value="">-- Select type of Enquiry --</option>
+                      <option value="New TallyPrime">New TallyPrime</option>
+                      <option value="Tss Renewal">Tss Renewal</option>
+                      <option value="Tally on Cloud">Tally on Cloud</option>
+                      <option value="Tally Customisation">Tally Customisation</option>
+                      <option value="Others">Others</option>
+                    </select>
+                    {formErrors.enquiryType && <p className="text-[11px] text-red-500 font-bold">{formErrors.enquiryType}</p>}
+                  </div>
+
                   {/* Details */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-slate-600">Enquiry Details / Requirements</label>
+                    <label className="block text-xs font-semibold text-slate-600">
+                      Enquiry Details / Requirements {enquiryType === 'Others' ? <span className="text-red-500 font-bold">* (Required)</span> : <span className="text-slate-400 font-medium">(Optional)</span>}
+                    </label>
                     <textarea
                       rows={4}
                       placeholder="Write how we can assist you..."
@@ -858,16 +901,15 @@ export default function IosAppPortal() {
               </div>
 
               {/* Star Selector */}
-              <div className="flex justify-center gap-2 py-2">
+              <div className="flex justify-center gap-1.5 py-2">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <button
+                  <span
                     key={star}
-                    type="button"
                     onClick={() => setRatingVal(star)}
-                    className="text-3xl text-amber-400 focus:outline-none transition-transform active:scale-95"
+                    className="text-4xl px-2 py-1 text-amber-400 cursor-pointer select-none transition-transform active:scale-95 touch-manipulation"
                   >
                     {ratingVal >= star ? '★' : '☆'}
-                  </button>
+                  </span>
                 ))}
               </div>
 

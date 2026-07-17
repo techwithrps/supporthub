@@ -37,6 +37,7 @@ interface Enquiry {
   status: 'pending' | 'in_progress' | 'converted' | 'not_converted';
   conversion_notes: string | null;
   claimed_at: string | null;
+  enquiry_type?: string | null;
 }
 
 interface Profile {
@@ -90,7 +91,7 @@ export default function Dashboard() {
   const [employeeFilter, setEmployeeFilter] = useState<'all' | 'solving' | 'idle'>('all');
 
   // Employee navigation state
-  const [activeTab, setActiveTab] = useState<'queue' | 'mine' | 'resolved' | 'enquiries'>('queue');
+  const [activeTab, setActiveTab] = useState<'queue' | 'mine' | 'resolved' | 'enquiries' | 'escalated'>('queue');
   const [loading, setLoading] = useState(true);
 
   // New Employee Creation States
@@ -411,9 +412,10 @@ export default function Dashboard() {
     return { status: 'Idle', color: 'text-gray-400 bg-gray-50 border-gray-100', activeTicket: null };
   };
 
-  const pendingTickets = tickets.filter(t => t.status === 'pending' && (isAdmin ? true : t.escalated_by !== user?.id));
+  const pendingTickets = tickets.filter(t => t.status === 'pending' && !t.is_escalated);
   const myTickets = tickets.filter(t => t.assigned_to === user?.id && t.status === 'assigned');
   const resolvedTickets = tickets.filter(t => t.status === 'resolved' && (isAdmin ? true : t.assigned_to === user?.id));
+  const escalatedTickets = tickets.filter(t => t.is_escalated);
 
   // Compute analytics metrics
   const getCSATAverage = () => {
@@ -424,16 +426,16 @@ export default function Dashboard() {
   };
 
   const getCategoryStats = () => {
-    const categories = ['Tally Related Issue', 'Cloud Related Issue', 'TSS Renewal', 'Tally Customization', 'Others'];
+    const categories = ['New TallyPrime', 'Tss Renewal', 'Tally on Cloud', 'Tally Customisation', 'Others'];
     const total = tickets.length || 1;
     return categories.map(cat => {
       const count = tickets.filter(t => t.issue_type === cat).length;
       const pct = Math.round((count / total) * 100);
       const filterMap: Record<string, 'tally' | 'cloud' | 'tss' | 'custom' | 'others'> = {
-        'Tally Related Issue': 'tally',
-        'Cloud Related Issue': 'cloud',
-        'TSS Renewal': 'tss',
-        'Tally Customization': 'custom',
+        'New TallyPrime': 'tally',
+        'Tss Renewal': 'tss',
+        'Tally on Cloud': 'cloud',
+        'Tally Customisation': 'custom',
         'Others': 'others'
       };
       return { label: cat, count, pct, filterKey: filterMap[cat] };
@@ -464,13 +466,13 @@ export default function Dashboard() {
       case 'feedback':
         return tickets.filter(t => t.status === 'resolved' && t.feedback);
       case 'tally':
-        return tickets.filter(t => t.issue_type === 'Tally Related Issue');
+        return tickets.filter(t => t.issue_type === 'New TallyPrime');
       case 'cloud':
-        return tickets.filter(t => t.issue_type === 'Cloud Related Issue');
+        return tickets.filter(t => t.issue_type === 'Tally on Cloud');
       case 'tss':
-        return tickets.filter(t => t.issue_type === 'TSS Renewal');
+        return tickets.filter(t => t.issue_type === 'Tss Renewal');
       case 'custom':
-        return tickets.filter(t => t.issue_type === 'Tally Customization');
+        return tickets.filter(t => t.issue_type === 'Tally Customisation');
       case 'others':
         return tickets.filter(t => t.issue_type === 'Others');
       case 'all':
@@ -484,10 +486,10 @@ export default function Dashboard() {
       pending: 'Unassigned Pending Queue',
       resolved: 'Resolved Tickets History',
       feedback: 'Customer Ratings & Feedbacks',
-      tally: 'Category: Tally Related Issues',
-      cloud: 'Category: Cloud Related Issues',
-      tss: 'Category: TSS Renewal Requests',
-      custom: 'Category: Tally Customizations',
+      tally: 'Category: New TallyPrime',
+      cloud: 'Category: Tally on Cloud',
+      tss: 'Category: Tss Renewal Requests',
+      custom: 'Category: Tally Customisations',
       others: 'Category: Other Queries',
       all: 'All System Tickets'
     };
@@ -1261,12 +1263,13 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         {/* STATS ROW */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           {[
             { label: 'Pending', count: pendingTickets.length, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-100' },
             { label: 'My Active', count: myTickets.length, color: 'text-blue-600', bg: 'bg-blue-50 border-blue-100' },
             { label: 'Resolved', count: resolvedTickets.length, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-100' },
             { label: 'Enquiries', count: enquiries.length, color: 'text-purple-600', bg: 'bg-purple-50 border-purple-100' },
+            { label: 'Escalated', count: escalatedTickets.length, color: 'text-red-600', bg: 'bg-red-50 border-red-100' },
           ].map((stat) => (
             <div key={stat.label} className={`${stat.bg} border rounded-2xl p-5`}>
               <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
@@ -1282,6 +1285,7 @@ export default function Dashboard() {
             { key: 'mine', label: `🛠️ My Tasks (${myTickets.length})` },
             { key: 'resolved', label: `✅ Resolved (${resolvedTickets.length})` },
             { key: 'enquiries', label: `📝 Enquiries (${enquiries.length})` },
+            { key: 'escalated', label: `🚨 Escalated (${escalatedTickets.length})` },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -1349,13 +1353,7 @@ export default function Dashboard() {
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 text-xs">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setTransferModal(t); setTransferReason(''); setTransferTargetEmployeeId(''); }}
-                        className="text-amber-600 hover:text-amber-700 font-bold hover:underline transition"
-                      >
-                        🔄 Handover / Transfer
-                      </button>
+                    <div className="pt-3 border-t border-gray-100 text-xs text-right">
                       <button 
                         onClick={(e) => { e.stopPropagation(); setEscalateModal(t); setEscalateReason(''); }}
                         className="text-red-600 hover:text-red-700 font-bold hover:underline transition"
@@ -1448,6 +1446,11 @@ export default function Dashboard() {
                           >
                             📞 {e.phone}
                           </a>
+                          {e.enquiry_type && (
+                            <span className="inline-block mt-1.5 text-[9px] bg-purple-50 text-purple-700 border border-purple-100 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                              🏷️ {e.enquiry_type}
+                            </span>
+                          )}
                         </div>
                         <span className={`text-[9px] px-2 py-0.5 rounded-full border font-bold uppercase tracking-wider ${leadStatusColors[e.status || 'pending']}`}>
                           {leadStatusLabels[e.status || 'pending']}
@@ -1546,6 +1549,38 @@ export default function Dashboard() {
                   </div>
                 );
               })
+            )}
+          </div>
+        )}
+
+        {/* ESCALATED TAB */}
+        {activeTab === 'escalated' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {escalatedTickets.length === 0 ? (
+              <div className="col-span-full">
+                <EmptyState message="No escalated tickets in queue 🎉" />
+              </div>
+            ) : (
+              escalatedTickets.map((t) => (
+                <TicketCard key={t.id} ticket={t} statusBadge={statusBadge} onClick={() => setDetailTicket(t)}>
+                  <div className="mt-3 bg-red-50/50 border border-red-100/60 rounded-xl p-2.5 text-xs text-red-700">
+                    <p className="font-bold text-[10px] text-red-500 uppercase tracking-wider mb-0.5">🚨 Escalation Reason</p>
+                    <p className="italic">"{t.escalation_reason || 'No reason provided'}"</p>
+                  </div>
+                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-50">
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-400">Waiting since</p>
+                      <LiveTimer from={t.created_at} />
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); claimTicket(t.id); }}
+                      className="bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition"
+                    >
+                      Claim Task
+                    </button>
+                  </div>
+                </TicketCard>
+              ))
             )}
           </div>
         )}
