@@ -1,13 +1,6 @@
 import { NextResponse } from 'next/server';
 import webpush from 'web-push';
 
-// Configure VAPID details for Web Push
-webpush.setVapidDetails(
-  'mailto:support@suyog.net',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
-  process.env.VAPID_PRIVATE_KEY || ''
-);
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -15,6 +8,17 @@ export async function POST(request: Request) {
 
     if (!to) {
       return NextResponse.json({ success: false, error: 'Recipient token missing' }, { status: 400 });
+    }
+
+    // Configure VAPID details dynamically inside request context to bypass build-time checks
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+    if (vapidPublicKey && vapidPrivateKey) {
+      webpush.setVapidDetails(
+        'mailto:support@suyog.net',
+        vapidPublicKey,
+        vapidPrivateKey
+      );
     }
 
     // Helper to send a single Web Push notification
