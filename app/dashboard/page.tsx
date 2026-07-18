@@ -902,9 +902,6 @@ export default function Dashboard() {
                     <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-sm font-bold text-gray-800">📢 Send Broadcast Promotion</h3>
-                        <span className="text-[10px] bg-purple-50 text-purple-600 font-bold px-2 py-0.5 rounded-full border border-purple-100">
-                          Expo Push V1
-                        </span>
                       </div>
                       
                       <div className="space-y-3 text-xs">
