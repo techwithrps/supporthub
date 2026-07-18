@@ -76,10 +76,10 @@ export default function IosAppPortal() {
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   const issueTypes = [
-    'New TallyPrime',
-    'Tss Renewal',
-    'Tally on Cloud',
-    'Tally Customisation',
+    'Tally Prime',
+    'Tally ERP 9',
+    'License Activation',
+    'Data Recovery',
     'Others',
   ];
 
