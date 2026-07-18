@@ -1,20 +1,23 @@
-// Suyog Support Hub PWA Service Worker
+// Suyog Support Hub — PWA Service Worker for Web Push Notifications
+
 self.addEventListener('push', function(event) {
   let data = {};
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch (e) {
-    data = { title: 'Suyog Support Hub', body: event.data ? event.data.text() : 'New update' };
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { body: event.data.text() };
+    }
   }
 
-  const title = data.title || 'Suyog Support Hub';
+  const title = data.title || '✅ Query Resolved — Suyog Support';
   const options = {
-    body: data.body || 'We have an update for you.',
-    icon: '/apple-icon.png',
-    badge: '/apple-icon.png',
+    body: data.body || 'Your issue has been resolved.',
+    icon: '/logo.png',
+    badge: '/favicon.ico',
     vibrate: [100, 50, 100],
     data: {
-      url: data.url || '/'
+      url: data.data?.url || '/ios'
     }
   };
 
@@ -25,7 +28,21 @@ self.addEventListener('push', function(event) {
 
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
+  const targetUrl = event.notification.data?.url || '/ios';
+
   event.waitUntil(
-    clients.openWindow(event.notification.data.url || '/')
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      // If a window is already open, focus it
+      for (let i = 0; i < clientList.length; i++) {
+        const client = clientList[i];
+        if (client.url.includes(targetUrl) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Otherwise, open a new window
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
   );
 });

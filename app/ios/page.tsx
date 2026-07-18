@@ -71,6 +71,10 @@ export default function IosAppPortal() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIosMobile, setIsIosMobile] = useState(false);
 
+  // PWA Web Push states
+  const [pushPermissionState, setPushPermissionState] = useState<'prompt' | 'granted' | 'denied' | 'unsupported'>('prompt');
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
   const issueTypes = [
     'New TallyPrime',
     'Tss Renewal',
@@ -97,6 +101,24 @@ export default function IosAppPortal() {
         navigator.serviceWorker.register('/sw.js')
           .then((reg) => console.log('Service Worker registered successfully:', reg))
           .catch((err) => console.error('Service Worker registration failed:', err));
+      }
+
+      // Check Web Push support and permissions
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        setPushPermissionState('unsupported');
+      } else {
+        if (Notification.permission === 'granted') {
+          setPushPermissionState('granted');
+          navigator.serviceWorker.ready.then(async (reg) => {
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+              localStorage.setItem('suyog_pwa_push_subscription', JSON.stringify(sub));
+              setIsSubscribed(true);
+            }
+          });
+        } else if (Notification.permission === 'denied') {
+          setPushPermissionState('denied');
+        }
       }
 
       // Load stored ticket IDs
@@ -233,6 +255,49 @@ export default function IosAppPortal() {
     setShowPwaPrompt(false);
   };
 
+  // Request Web Push Subscription for PWA
+  const handleSubscribeNotifications = async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        setPushPermissionState(permission === 'default' ? 'prompt' : permission);
+        return;
+      }
+      
+      setPushPermissionState('granted');
+      const registration = await navigator.serviceWorker.ready;
+      
+      const urlBase64ToUint8Array = (base64String: string) => {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+      };
+
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) {
+        console.error('VAPID public key is missing');
+        return;
+      }
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey)
+      });
+
+      const subscriptionStr = JSON.stringify(subscription);
+      localStorage.setItem('suyog_pwa_push_subscription', subscriptionStr);
+      setIsSubscribed(true);
+    } catch (err) {
+      console.error('Failed to subscribe to PWA Push:', err);
+    }
+  };
+
   // Submit Ticket (Raise Issue)
   const handleRaiseQuerySubmit = async () => {
     const errors: Record<string, string> = {};
@@ -266,6 +331,7 @@ export default function IosAppPortal() {
     setLoading(true);
     try {
       const isEmail = input.includes('@');
+      const savedPushSubscription = typeof window !== 'undefined' ? localStorage.getItem('suyog_pwa_push_subscription') : null;
       const insertData = {
         customer_name: queryName,
         tally_serial: isEmail ? 'N/A' : input,
@@ -274,6 +340,7 @@ export default function IosAppPortal() {
         issue_type: queryType,
         description: queryDesc,
         status: 'pending',
+        push_token: savedPushSubscription || null,
       };
 
       const { data, error } = await supabase
@@ -446,8 +513,28 @@ export default function IosAppPortal() {
                 </h1>
               </div>
 
+              {/* Notification Banner Option */}
+              {pushPermissionState !== 'granted' && !isSubscribed ? (
+                <div className="mx-6 mb-2 bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100/60 rounded-[20px] p-4.5 text-xs shadow-sm flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="font-extrabold text-indigo-900 mb-0.5">🔔 Live Updates Alert</p>
+                    <p className="text-indigo-600/90 leading-relaxed font-semibold">Enable push notifications to receive instant updates when support tickets resolve.</p>
+                  </div>
+                  <button
+                    onClick={handleSubscribeNotifications}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-extrabold px-3 py-2.5 rounded-xl shadow-sm transition whitespace-nowrap active:scale-95"
+                  >
+                    Enable Alerts
+                  </button>
+                </div>
+              ) : isSubscribed ? (
+                <p className="text-center text-[10px] text-emerald-600 font-bold tracking-wider uppercase mb-2">
+                  🛡️ Live Push Alerts Enabled
+                </p>
+              ) : null}
+
               {/* Action Buttons */}
-              <div className="space-y-4 flex-grow flex flex-col justify-center">
+              <div className="space-y-4 flex-grow flex flex-col justify-center px-6">
                 
                 {/* Raise Issue Card */}
                 <button
