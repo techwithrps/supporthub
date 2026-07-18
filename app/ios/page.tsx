@@ -465,6 +465,10 @@ export default function IosAppPortal() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-0 sm:p-4 select-none" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      <title>Suyog Support</title>
+      <meta name="apple-mobile-web-app-title" content="Suyog Support" />
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       
       {/* Standalone Simulator Frame */}
       <div className="w-full max-w-md bg-white min-h-screen sm:min-h-[812px] sm:rounded-[36px] sm:shadow-2xl overflow-hidden flex flex-col border-0 sm:border-8 border-slate-900 relative">
