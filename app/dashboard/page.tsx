@@ -127,6 +127,12 @@ export default function Dashboard() {
   const [crmStatus, setCrmStatus] = useState<'pending' | 'in_progress' | 'converted' | 'not_converted'>('converted');
   const [updatingCrm, setUpdatingCrm] = useState(false);
 
+  // Promotional Broadcast states
+  const [promoTitle, setPromoTitle] = useState('');
+  const [promoBody, setPromoBody] = useState('');
+  const [sendingPromo, setSendingPromo] = useState(false);
+  const [promoStatusMsg, setPromoStatusMsg] = useState('');
+
   const fetchData = useCallback(async () => {
     const [ticketsRes, enquiriesRes] = await Promise.all([
       supabase.from('tickets').select('*').order('created_at', { ascending: false }),
@@ -363,6 +369,71 @@ export default function Dashboard() {
     setSendingNotif(false);
     setResolveModal(null);
     fetchData();
+  };
+
+  const handleSendPromotion = async () => {
+    if (!promoTitle.trim() || !promoBody.trim()) {
+      setPromoStatusMsg('⚠️ Please enter both Title and Message.');
+      return;
+    }
+
+    setSendingPromo(true);
+    setPromoStatusMsg('🔍 Gathering active device tokens...');
+
+    try {
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('push_token')
+        .not('push_token', 'is', null);
+
+      if (error) throw error;
+
+      const allTokens = Array.from(new Set(
+        data
+          .map(t => t.push_token)
+          .filter(t => typeof t === 'string' && t.startsWith('ExponentPushToken['))
+      ));
+
+      if (allTokens.length === 0) {
+        setPromoStatusMsg('❌ No active registered devices found to receive push.');
+        setSendingPromo(false);
+        return;
+      }
+
+      setPromoStatusMsg(`🚀 Sending to ${allTokens.length} devices...`);
+
+      const chunks = [];
+      const tempTokens = [...allTokens];
+      while (tempTokens.length > 0) {
+        chunks.push(tempTokens.splice(0, 100));
+      }
+
+      let successCount = 0;
+      for (const chunk of chunks) {
+        const payload = chunk.map(token => ({
+          to: token,
+          title: promoTitle,
+          body: promoBody,
+          data: { type: 'promotion' },
+        }));
+
+        await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        successCount += chunk.length;
+      }
+
+      setPromoStatusMsg(`✅ Successfully broadcasted to ${successCount} devices!`);
+      setPromoTitle('');
+      setPromoBody('');
+    } catch (err: any) {
+      console.error(err);
+      setPromoStatusMsg(`❌ Error broadcasting: ${err.message || String(err)}`);
+    } finally {
+      setSendingPromo(false);
+    }
   };
 
   const handleCreateEmployee = async (e: React.FormEvent) => {
@@ -827,6 +898,54 @@ export default function Dashboard() {
                           {employees.filter(e => e.email !== 'admin@suyog.net' && getEmployeeStatus(e.id).status === 'Idle').length}
                         </span>
                       </button>
+                    </div>
+
+                    {/* Broadcast Promotional Push Notification Card */}
+                    <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-gray-800">📢 Send Broadcast Promotion</h3>
+                        <span className="text-[10px] bg-purple-50 text-purple-600 font-bold px-2 py-0.5 rounded-full border border-purple-100">
+                          Expo Push V1
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-3 text-xs">
+                        <div>
+                          <label className="block font-bold text-gray-500 mb-1 uppercase tracking-wider text-[10px]">Offer Title</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Special TSS Renewal Offer! 🎉"
+                            value={promoTitle}
+                            onChange={(e) => setPromoTitle(e.target.value)}
+                            className="w-full border border-gray-200 rounded-xl p-2.5 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/25 transition text-xs"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block font-bold text-gray-500 mb-1 uppercase tracking-wider text-[10px]">Offer Description / Message</label>
+                          <textarea
+                            rows={3}
+                            placeholder="e.g. Renew your TSS today and get flat 20% cashback. Offer valid till Sunday!"
+                            value={promoBody}
+                            onChange={(e) => setPromoBody(e.target.value)}
+                            className="w-full border border-gray-200 rounded-xl p-2.5 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/25 transition text-xs"
+                          />
+                        </div>
+
+                        {promoStatusMsg && (
+                          <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-[11px] text-gray-600 font-medium">
+                            {promoStatusMsg}
+                          </div>
+                        )}
+
+                        <button
+                          onClick={handleSendPromotion}
+                          disabled={sendingPromo}
+                          className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white rounded-xl py-2.5 font-bold shadow-sm transition flex items-center justify-center gap-1.5"
+                        >
+                          {sendingPromo ? 'Sending...' : '🚀 Broadcast to All Devices'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
