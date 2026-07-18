@@ -351,13 +351,13 @@ export default function Dashboard() {
 
     if (resolveModal.push_token) {
       try {
-        await fetch('https://exp.host/--/api/v2/push/send', {
+        await fetch('/api/notifications/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: resolveModal.push_token,
             title: '✅ Query Resolved — Suyog Support Hub',
-            body: `Your query "${resolveModal.issue_type}" has been resolved. Please rate your experience!`,
+            messageBody: `Your query "${resolveModal.issue_type}" has been resolved. Please rate your experience!`,
             data: { ticketId: resolveModal.id },
           }),
         });
@@ -410,17 +410,15 @@ export default function Dashboard() {
 
       let successCount = 0;
       for (const chunk of chunks) {
-        const payload = chunk.map(token => ({
-          to: token,
-          title: promoTitle,
-          body: promoBody,
-          data: { type: 'promotion' },
-        }));
-
-        await fetch('https://exp.host/--/api/v2/push/send', {
+        await fetch('/api/notifications/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            to: chunk,
+            title: promoTitle,
+            messageBody: promoBody,
+            data: { type: 'promotion' },
+          }),
         });
         successCount += chunk.length;
       }
